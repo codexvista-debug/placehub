@@ -13,8 +13,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-4xl mx-auto">
-      <div className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-lime-200 flex flex-col gap-6">
+    <div className="min-h-screen bg-lime-50 text-slate-900 p-4 sm:p-8 md:p-12 font-[family-name:var(--font-geist-sans)]">
+      <div className="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-lime-200 flex flex-col gap-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-lime-900">Settings & Notion Configuration</h1>
           <p className="text-sm text-lime-700 mt-1">
@@ -34,7 +34,7 @@ export default function SettingsPage() {
             />
             <button
               onClick={() => handleCopy(databaseId)}
-              className="px-3.5 py-2.5 bg-lime-600 hover:bg-lime-700 text-white font-semibold rounded-md text-xs sm:text-sm transition-colors"
+              className="px-3.5 py-2.5 bg-lime-600 hover:bg-lime-700 text-white font-semibold rounded-md text-xs sm:text-sm transition-colors shadow-xs"
             >
               {copied ? 'Copied!' : 'Copy'}
             </button>
@@ -42,8 +42,8 @@ export default function SettingsPage() {
         </div>
 
         {/* Instructions for switching to Brother's Real Database */}
-        <div className="border border-slate-200 p-6 rounded-xl flex flex-col gap-4 bg-slate-50">
-          <h2 className="text-lg font-bold text-slate-900">
+        <div className="border border-lime-200 p-6 rounded-xl flex flex-col gap-4 bg-lime-50/60">
+          <h2 className="text-lg font-bold text-lime-950">
             🔄 How to switch to your Brother&apos;s Real Database later
           </h2>
 
@@ -52,12 +52,12 @@ export default function SettingsPage() {
           </p>
 
           <ol className="list-decimal list-inside text-sm text-slate-800 flex flex-col gap-3 font-medium">
-            <li className="p-3 bg-white rounded-lg border border-slate-200">
-              <strong className="text-lime-900">Grant Permission in Notion:</strong> Open your brother&apos;s real database in Notion, click the three dots (<code className="bg-slate-100 px-1 py-0.5 rounded text-xs">...</code>) at the top right, go to <strong>Connections</strong>, and add <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">Antigravity-Notion</code>.
+            <li className="p-3 bg-white rounded-lg border border-lime-200 shadow-xs">
+              <strong className="text-lime-900">Grant Permission in Notion:</strong> Open your brother&apos;s real database in Notion, click the three dots (<code className="bg-lime-100 px-1 py-0.5 rounded text-xs">...</code>) at the top right, go to <strong>Connections</strong>, and add <code className="bg-lime-100 px-1 py-0.5 rounded text-xs">Antigravity-Notion</code>.
             </li>
 
-            <li className="p-3 bg-white rounded-lg border border-slate-200">
-              <strong className="text-lime-900">Update ID in Vercel:</strong> Go to your <strong>Vercel Settings → Environment Variables</strong>, update <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">NOTION_DATABASE_ID</code> with his Database ID, and hit <strong>Redeploy</strong>!
+            <li className="p-3 bg-white rounded-lg border border-lime-200 shadow-xs">
+              <strong className="text-lime-900">Update ID in Vercel:</strong> Go to your <strong>Vercel Settings → Environment Variables</strong>, update <code className="bg-lime-100 px-1 py-0.5 rounded text-xs">NOTION_DATABASE_ID</code> with his Database ID, and hit <strong>Redeploy</strong>!
             </li>
           </ol>
         </div>

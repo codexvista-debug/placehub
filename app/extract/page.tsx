@@ -6,7 +6,6 @@ export default function ExtractPage() {
   const [rawText, setRawText] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
 
-  // Extracted form state
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     interviewTime: '',
@@ -28,9 +27,7 @@ export default function ExtractPage() {
     if (!rawText.trim()) return;
     setIsExtracting(true);
 
-    // Smart regex pattern matching on raw text pasted by user
     const text = rawText;
-
     const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
     const phoneMatch = text.match(/(\+?\d{1,3}[\s-]?)?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{4}/);
     const dateMatch = text.match(/\b\d{4}-\d{2}-\d{2}\b/);
@@ -45,7 +42,7 @@ export default function ExtractPage() {
 
     setTimeout(() => {
       setIsExtracting(false);
-    }, 400);
+    }, 300);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,8 +52,8 @@ export default function ExtractPage() {
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-5xl mx-auto">
-      <div className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-lime-200 flex flex-col gap-6">
+    <div className="min-h-screen bg-lime-50 text-slate-900 p-4 sm:p-8 md:p-12 font-[family-name:var(--font-geist-sans)]">
+      <div className="max-w-5xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-lime-200 flex flex-col gap-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-lime-900">Text Extractor & Quick Add</h1>
           <p className="text-sm text-lime-700 mt-1">
@@ -70,7 +67,6 @@ export default function ExtractPage() {
           </div>
         )}
 
-        {/* Raw Text Input Area */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-semibold text-lime-950">Paste Raw Text / Email Snippet:</label>
           <textarea
@@ -78,18 +74,17 @@ export default function ExtractPage() {
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
             placeholder="e.g. Interview scheduled for Java Full Stack Developer with Cigna on Tue Jan 06. Recruiter contact: recruiter@example.com (555-123-4567)"
-            className="w-full p-3 border border-lime-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 bg-lime-50/50"
+            className="w-full p-3 border border-lime-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 bg-lime-50/50 text-slate-900"
           />
           <button
             onClick={handleQuickExtract}
             disabled={!rawText.trim() || isExtracting}
-            className="self-start px-4 py-2 bg-lime-700 hover:bg-lime-800 text-white font-semibold rounded-md text-sm transition-colors disabled:opacity-50"
+            className="self-start px-4 py-2 bg-lime-600 hover:bg-lime-700 text-white font-semibold rounded-md text-sm transition-colors disabled:opacity-50 shadow-xs"
           >
             {isExtracting ? 'Extracting...' : '⚡ Auto-Extract Data'}
           </button>
         </div>
 
-        {/* Structured Form */}
         <form onSubmit={handleSubmit} className="border-t border-lime-100 pt-6 flex flex-col gap-4">
           <h2 className="text-lg font-bold text-lime-900">Review & Submit Extracted Details</h2>
 
@@ -100,7 +95,7 @@ export default function ExtractPage() {
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
+                className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
               />
             </div>
 
@@ -111,7 +106,7 @@ export default function ExtractPage() {
                 value={formData.interviewTime}
                 placeholder="e.g. 03:00 pm - 03:30 pm EST"
                 onChange={(e) => setFormData({ ...formData, interviewTime: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
+                className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
               />
             </div>
 
@@ -122,7 +117,7 @@ export default function ExtractPage() {
                 value={formData.consultantName}
                 placeholder="e.g. John Doe"
                 onChange={(e) => setFormData({ ...formData, consultantName: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
+                className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
               />
             </div>
 
@@ -133,7 +128,7 @@ export default function ExtractPage() {
                 value={formData.position}
                 placeholder="e.g. Senior AI Engineer"
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
+                className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
               />
             </div>
 
@@ -144,7 +139,7 @@ export default function ExtractPage() {
                 value={formData.client}
                 placeholder="e.g. Cigna / RevoText"
                 onChange={(e) => setFormData({ ...formData, client: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
+                className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
               />
             </div>
 
@@ -153,7 +148,7 @@ export default function ExtractPage() {
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
+                className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
               >
                 <option value="Interview">Interview</option>
                 <option value="Screening">Screening</option>
@@ -170,7 +165,7 @@ export default function ExtractPage() {
                 value={formData.recruiterEmail}
                 placeholder="recruiter@client.com"
                 onChange={(e) => setFormData({ ...formData, recruiterEmail: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
+                className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
               />
             </div>
 
@@ -181,7 +176,7 @@ export default function ExtractPage() {
                 value={formData.recruiterPhone}
                 placeholder="Phone number"
                 onChange={(e) => setFormData({ ...formData, recruiterPhone: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
+                className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
               />
             </div>
 
@@ -192,7 +187,7 @@ export default function ExtractPage() {
                 value={formData.marketer}
                 placeholder="Marketer name"
                 onChange={(e) => setFormData({ ...formData, marketer: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
+                className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white"
               />
             </div>
           </div>
