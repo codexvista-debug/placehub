@@ -13,6 +13,7 @@ export default async function Home() {
 
     if (!databaseId) throw new Error("Missing Database ID");
 
+    // @ts-ignore - The Notion client types sometimes omit query in newer strict TS versions
     const response = await notion.databases.query({
       database_id: databaseId,
     });
