@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 interface SchemaInfo {
   type: string;
@@ -22,36 +22,23 @@ export default function TableClient({
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 50;
 
-  // Active column popover menu: string (header name) | null
+  // Active column popover menu
   const [activePopover, setActivePopover] = useState<string | null>(null);
 
-  // Column-specific search text: Record<header, string>
+  // Column-specific search text
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
 
-  // Column-specific selected values (for select/status/multi_select): Record<header, string[]>
+  // Column-specific selected values
   const [columnSelectedValues, setColumnSelectedValues] = useState<Record<string, string[]>>({});
 
-  // Sorting state: { column, direction }
+  // Sorting state
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Editing state: cell click
+  // Editing state
   const [editingCell, setEditingCell] = useState<{ rowId: string; header: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [savingStatus, setSavingStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
-
-  const popoverRef = useRef<HTMLDivElement | null>(null);
-
-  // Close popover when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setActivePopover(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Real-time Silent Polling (Notion -> Web without browser refresh)
   useEffect(() => {
@@ -74,7 +61,7 @@ export default function TableClient({
     return () => clearInterval(interval);
   }, [editingCell, activePopover]);
 
-  // Extract all unique values present in data for each column (for filter checklists)
+  // Extract all unique values present in data for each column
   const columnUniqueOptions = useMemo(() => {
     const map: Record<string, string[]> = {};
     columnHeaders.forEach((header) => {
@@ -92,7 +79,6 @@ export default function TableClient({
   const filteredAndSortedData = useMemo(() => {
     let result = [...data];
 
-    // Apply Column-Specific Search Texts & Value Checklists
     columnHeaders.forEach((header) => {
       const search = columnSearch[header]?.toLowerCase();
       if (search) {
@@ -107,7 +93,6 @@ export default function TableClient({
       }
     });
 
-    // Sorting
     if (sortColumn) {
       result.sort((a, b) => {
         const valA = (a[sortColumn] || '').toLowerCase();
@@ -122,7 +107,6 @@ export default function TableClient({
     return result;
   }, [data, columnHeaders, columnSearch, columnSelectedValues, sortColumn, sortDirection]);
 
-  // Reset page to 1 whenever filters or sort change
   useEffect(() => {
     setCurrentPage(1);
   }, [columnSearch, columnSelectedValues, sortColumn, sortDirection]);
@@ -220,38 +204,34 @@ export default function TableClient({
     );
   };
 
-  // Pagination Toolbar JSX
-  const renderPaginationControls = () => (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1 text-xs sm:text-sm text-lime-900 font-medium">
-      <div>
-        Showing{' '}
-        <span className="font-bold text-lime-950">
-          {filteredAndSortedData.length === 0 ? 0 : startIndex + 1}
-        </span>{' '}
-        to{' '}
-        <span className="font-bold text-lime-950">
-          {Math.min(startIndex + rowsPerPage, filteredAndSortedData.length)}
-        </span>{' '}
-        of <span className="font-bold text-lime-950">{filteredAndSortedData.length}</span> rows
+  // Compact Inline Pagination Bar
+  const renderPaginationBar = (isBottom = false) => (
+    <div className={`flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-lime-900 font-medium ${isBottom ? 'pt-2' : 'pb-2 border-b border-lime-100'}`}>
+      <div className="flex items-center gap-2">
+        <span className="text-slate-600">
+          Showing <strong className="text-slate-900">{filteredAndSortedData.length === 0 ? 0 : startIndex + 1}</strong>-
+          <strong className="text-slate-900">{Math.min(startIndex + rowsPerPage, filteredAndSortedData.length)}</strong> of{' '}
+          <strong className="text-slate-900">{filteredAndSortedData.length}</strong> rows
+        </span>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <button
           onClick={handlePrev}
           disabled={currentPage === 1}
-          className="px-3 py-1.5 rounded-md border border-lime-300 bg-white text-lime-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-lime-100 transition-colors shadow-xs text-xs sm:text-sm font-semibold"
+          className="px-2.5 py-1 rounded border border-lime-300 bg-white text-lime-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-lime-100 transition-colors text-xs font-semibold shadow-2xs"
         >
-          ← Previous
+          ← Prev
         </button>
 
-        <span className="px-3 py-1 bg-lime-100 rounded-md border border-lime-300 text-lime-900 font-bold text-xs sm:text-sm">
-          Page {totalPages === 0 ? 0 : currentPage} of {totalPages}
+        <span className="px-2.5 py-1 bg-lime-100 rounded border border-lime-300 text-lime-900 font-bold text-xs">
+          {totalPages === 0 ? 0 : currentPage} / {totalPages}
         </span>
 
         <button
           onClick={handleNext}
           disabled={currentPage === totalPages || totalPages === 0}
-          className="px-3 py-1.5 rounded-md border border-lime-300 bg-white text-lime-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-lime-100 transition-colors shadow-xs text-xs sm:text-sm font-semibold"
+          className="px-2.5 py-1 rounded border border-lime-300 bg-white text-lime-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-lime-100 transition-colors text-xs font-semibold shadow-2xs"
         >
           Next →
         </button>
@@ -260,23 +240,23 @@ export default function TableClient({
   );
 
   return (
-    <div className="flex flex-col gap-4 w-full" ref={popoverRef}>
+    <div className="flex flex-col gap-2 w-full relative">
       
-      {/* Top Bar: Live Auto-Sync Badge + Top Pagination */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-lime-100 pb-3">
-        <span className="flex items-center gap-1.5 bg-lime-100 px-3 py-1 rounded-full border border-lime-300 font-semibold text-xs text-lime-900 self-start">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-ping"></span>
-          🟢 Live Auto-Sync Active
-        </span>
+      {/* Reliable Click-Outside Backdrop */}
+      {activePopover && (
+        <div
+          className="fixed inset-0 z-20 bg-transparent"
+          onClick={() => setActivePopover(null)}
+        />
+      )}
 
-        {/* TOP PAGINATION CONTROLS */}
-        {renderPaginationControls()}
-      </div>
+      {/* COMPACT TOP PAGINATION BAR */}
+      {renderPaginationBar(false)}
 
       {/* Table Container with Horizontal Scroll */}
-      <div className="w-full overflow-x-auto border border-lime-300 rounded-lg shadow-sm bg-white min-h-[400px]">
+      <div className="w-full overflow-x-auto border border-lime-300 rounded-lg shadow-xs bg-white min-h-[450px]">
         <table className="min-w-max w-full text-left text-xs sm:text-sm border-collapse">
-          <thead className="bg-lime-100 text-lime-950 font-semibold border-b border-lime-300 sticky top-0 z-20">
+          <thead className="bg-lime-100 text-lime-950 font-semibold border-b border-lime-300 sticky top-0 z-10">
             <tr>
               {columnHeaders.map((header) => {
                 const isFiltered = isColumnFilteredOrSorted(header);
@@ -286,9 +266,9 @@ export default function TableClient({
                 return (
                   <th
                     key={header}
-                    className="px-4 py-3 border-r border-lime-300 last:border-r-0 whitespace-nowrap bg-lime-100 font-bold select-none relative"
+                    className="px-3.5 py-2.5 border-r border-lime-300 last:border-r-0 whitespace-nowrap bg-lime-100 font-bold select-none relative"
                   >
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-2">
                       <span>{header}</span>
 
                       {/* Header Filter/Sort Trigger Button */}
@@ -297,7 +277,7 @@ export default function TableClient({
                           e.stopPropagation();
                           setActivePopover(isPopoverOpen ? null : header);
                         }}
-                        className={`p-1 rounded hover:bg-lime-200 transition-colors ${
+                        className={`p-0.5 px-1 rounded hover:bg-lime-200 transition-colors ${
                           isFiltered ? 'text-lime-900 bg-lime-300 font-bold' : 'text-lime-700'
                         }`}
                         title="Sort & Filter Column"
@@ -317,6 +297,7 @@ export default function TableClient({
                             onClick={() => {
                               setSortColumn(header);
                               setSortDirection('asc');
+                              setActivePopover(null);
                             }}
                             className={`flex items-center gap-2 p-1.5 rounded hover:bg-lime-50 text-left ${
                               sortColumn === header && sortDirection === 'asc' ? 'bg-lime-100 font-bold' : ''
@@ -328,6 +309,7 @@ export default function TableClient({
                             onClick={() => {
                               setSortColumn(header);
                               setSortDirection('desc');
+                              setActivePopover(null);
                             }}
                             className={`flex items-center gap-2 p-1.5 rounded hover:bg-lime-50 text-left ${
                               sortColumn === header && sortDirection === 'desc' ? 'bg-lime-100 font-bold' : ''
@@ -378,7 +360,10 @@ export default function TableClient({
                         {/* Clear Filter Footer */}
                         {isFiltered && (
                           <button
-                            onClick={() => clearColumnFilter(header)}
+                            onClick={() => {
+                              clearColumnFilter(header);
+                              setActivePopover(null);
+                            }}
                             className="w-full mt-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded text-xs border border-red-200 transition-colors"
                           >
                             Clear Column Filter
@@ -412,7 +397,7 @@ export default function TableClient({
                       <td
                         key={header}
                         onClick={() => !isEditing && startEditing(row.id, header, val)}
-                        className="px-4 py-3 border-r border-lime-200 last:border-r-0 text-slate-800 whitespace-nowrap min-w-[140px] relative cursor-pointer group hover:bg-lime-100/50 transition-colors"
+                        className="px-3.5 py-2 border-r border-lime-200 last:border-r-0 text-slate-800 whitespace-nowrap min-w-[130px] relative cursor-pointer group hover:bg-lime-100/50 transition-colors"
                         title="Click to edit"
                       >
                         {isEditing ? (
@@ -465,8 +450,8 @@ export default function TableClient({
         </table>
       </div>
 
-      {/* BOTTOM PAGINATION CONTROLS */}
-      {renderPaginationControls()}
+      {/* COMPACT BOTTOM PAGINATION BAR */}
+      {renderPaginationBar(true)}
     </div>
   );
 }

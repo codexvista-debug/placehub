@@ -133,9 +133,8 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-lime-50 text-slate-900 p-3 sm:p-6 md:p-8 font-[family-name:var(--font-geist-sans)]">
-      <main className="w-full max-w-full mx-auto flex flex-col gap-4 bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-lime-200 overflow-hidden">
-        
+    <div className="min-h-screen bg-lime-50 text-slate-900 p-2 sm:p-4 font-[family-name:var(--font-geist-sans)]">
+      <main className="w-full max-w-full mx-auto flex flex-col bg-white p-2 sm:p-4 rounded-xl shadow-xs border border-lime-200 overflow-hidden">
         <section className="w-full overflow-hidden">
           {errorMsg ? (
             <div className="bg-red-50 text-red-700 p-4 rounded-md border border-red-200">
@@ -150,7 +149,6 @@ export default async function Home() {
             <TableClient placements={placements} columnHeaders={columnHeaders} columnSchema={columnSchema} />
           )}
         </section>
-
       </main>
     </div>
   );

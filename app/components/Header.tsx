@@ -39,18 +39,24 @@ export default function Header() {
   ];
 
   return (
-    <header className="bg-lime-900 text-white shadow-md border-b border-lime-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="bg-lime-900 text-white shadow-md border-b border-lime-800 sticky top-0 z-40">
+      <div className="max-w-full mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-14">
           
-          {/* Logo / Brand */}
+          {/* Logo & Live Sync Indicator */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-lime-500 text-lime-950 font-black text-xl flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-lime-500 text-lime-950 font-black text-lg flex items-center justify-center shadow-xs">
               P
             </div>
-            <Link href="/" className="text-xl font-bold tracking-tight hover:text-lime-200 transition-colors">
+            <Link href="/" className="text-lg font-bold tracking-tight hover:text-lime-200 transition-colors">
               PlaceRover
             </Link>
+
+            {/* Compact Live Sync Indicator Badge */}
+            <span className="hidden sm:flex items-center gap-1.5 bg-lime-950/60 text-lime-300 text-[11px] px-2.5 py-0.5 rounded-full border border-lime-700/60 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping"></span>
+              Live Syncing
+            </span>
           </div>
 
           {/* Navigation Items */}
@@ -61,7 +67,7 @@ export default function Header() {
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-semibold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all ${
                     isActive
                       ? 'bg-lime-600 text-white shadow-xs'
                       : 'text-lime-100 hover:bg-lime-800 hover:text-white'
