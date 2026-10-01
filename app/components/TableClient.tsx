@@ -13,6 +13,38 @@ interface TableClientProps {
   columnSchema?: Record<string, SchemaInfo>;
 }
 
+function getColumnBubbleStyle(headerName: string) {
+  const h = headerName.toLowerCase();
+  if (h.includes('status')) {
+    return 'bg-lime-100 text-lime-950 border-lime-300 font-semibold shadow-2xs';
+  }
+  if (h.includes('position')) {
+    return 'bg-purple-100 text-purple-950 border-purple-200 font-medium';
+  }
+  if (h.includes('vendor') || h.includes('client')) {
+    return 'bg-sky-100 text-sky-950 border-sky-200 font-semibold';
+  }
+  if (h.includes('consultant')) {
+    return 'bg-emerald-100 text-emerald-950 border-emerald-200 font-medium';
+  }
+  if (h.includes('marketer')) {
+    return 'bg-amber-100 text-amber-950 border-amber-300 font-medium';
+  }
+  if (h.includes('support')) {
+    return 'bg-rose-100 text-rose-950 border-rose-200 font-medium';
+  }
+  if (h.includes('recruiter')) {
+    return 'bg-violet-100 text-violet-950 border-violet-200 font-medium';
+  }
+  if (h.includes('time')) {
+    return 'bg-slate-100 text-slate-800 border-slate-200 font-normal';
+  }
+  if (h.includes('date')) {
+    return 'bg-teal-50 text-teal-950 border-teal-200 font-semibold';
+  }
+  return 'bg-lime-50/80 text-slate-800 border-lime-200 font-normal';
+}
+
 export default function TableClient({
   placements,
   columnHeaders,
@@ -40,7 +72,7 @@ export default function TableClient({
   const [editValue, setEditValue] = useState('');
   const [savingStatus, setSavingStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
 
-  // Real-time Silent Polling (Notion -> Web without browser refresh)
+  // Real-time Silent Polling
   useEffect(() => {
     const interval = setInterval(async () => {
       if (editingCell || activePopover) return;
@@ -61,7 +93,7 @@ export default function TableClient({
     return () => clearInterval(interval);
   }, [editingCell, activePopover]);
 
-  // Extract all unique values present in data for each column
+  // Unique options for each column
   const columnUniqueOptions = useMemo(() => {
     const map: Record<string, string[]> = {};
     columnHeaders.forEach((header) => {
@@ -242,7 +274,7 @@ export default function TableClient({
   return (
     <div className="flex flex-col gap-2 w-full relative">
       
-      {/* Reliable Click-Outside Backdrop */}
+      {/* Click-Outside Backdrop */}
       {activePopover && (
         <div
           className="fixed inset-0 z-20 bg-transparent"
@@ -250,12 +282,12 @@ export default function TableClient({
         />
       )}
 
-      {/* COMPACT TOP PAGINATION BAR */}
+      {/* TOP PAGINATION BAR */}
       {renderPaginationBar(false)}
 
-      {/* Table Container with Horizontal Scroll */}
+      {/* Table Container with Horizontal Scroll & Wrap Text styling */}
       <div className="w-full overflow-x-auto border border-lime-300 rounded-lg shadow-xs bg-white min-h-[450px]">
-        <table className="min-w-max w-full text-left text-xs sm:text-sm border-collapse">
+        <table className="w-full text-left text-xs border-collapse">
           <thead className="bg-lime-100 text-lime-950 font-semibold border-b border-lime-300 sticky top-0 z-10">
             <tr>
               {columnHeaders.map((header) => {
@@ -266,10 +298,10 @@ export default function TableClient({
                 return (
                   <th
                     key={header}
-                    className="px-3.5 py-2.5 border-r border-lime-300 last:border-r-0 whitespace-nowrap bg-lime-100 font-bold select-none relative"
+                    className="px-3 py-2 border-r border-lime-300 last:border-r-0 bg-lime-100 font-bold select-none relative whitespace-normal break-words max-w-[140px]"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span>{header}</span>
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="leading-snug">{header}</span>
 
                       {/* Header Filter/Sort Trigger Button */}
                       <button
@@ -277,7 +309,7 @@ export default function TableClient({
                           e.stopPropagation();
                           setActivePopover(isPopoverOpen ? null : header);
                         }}
-                        className={`p-0.5 px-1 rounded hover:bg-lime-200 transition-colors ${
+                        className={`p-0.5 px-1 rounded hover:bg-lime-200 transition-colors shrink-0 ${
                           isFiltered ? 'text-lime-900 bg-lime-300 font-bold' : 'text-lime-700'
                         }`}
                         title="Sort & Filter Column"
@@ -391,13 +423,13 @@ export default function TableClient({
                     const isEditing = editingCell?.rowId === row.id && editingCell?.header === header;
                     const cellKey = `${row.id}-${header}`;
                     const status = savingStatus[cellKey];
-                    const isStatusCol = header.toLowerCase() === 'status';
+                    const bubbleStyle = getColumnBubbleStyle(header);
 
                     return (
                       <td
                         key={header}
                         onClick={() => !isEditing && startEditing(row.id, header, val)}
-                        className="px-3.5 py-2 border-r border-lime-200 last:border-r-0 text-slate-800 whitespace-nowrap min-w-[130px] relative cursor-pointer group hover:bg-lime-100/50 transition-colors"
+                        className="px-2.5 py-2 border-r border-lime-200 last:border-r-0 text-slate-800 whitespace-normal break-words max-w-[170px] min-w-[110px] relative cursor-pointer group hover:bg-lime-100/40 transition-colors leading-snug align-top"
                         title="Click to edit"
                       >
                         {isEditing ? (
@@ -414,13 +446,13 @@ export default function TableClient({
                             className="w-full p-1 border border-lime-500 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-lime-600"
                           />
                         ) : (
-                          <div className="flex items-center justify-between gap-2">
-                            {isStatusCol && val !== '-' ? (
-                              <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-lime-100 text-lime-900 border border-lime-300">
+                          <div className="flex flex-col gap-1 items-start justify-between min-h-[24px]">
+                            {val !== '-' ? (
+                              <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] border ${bubbleStyle} max-w-full break-words leading-tight`}>
                                 {val}
                               </span>
                             ) : (
-                              <span>{val}</span>
+                              <span className="text-slate-400 italic text-[11px]">-</span>
                             )}
 
                             {status === 'saving' && (
@@ -450,7 +482,7 @@ export default function TableClient({
         </table>
       </div>
 
-      {/* COMPACT BOTTOM PAGINATION BAR */}
+      {/* BOTTOM PAGINATION BAR */}
       {renderPaginationBar(true)}
     </div>
   );
