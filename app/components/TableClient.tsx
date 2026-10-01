@@ -57,6 +57,9 @@ export default function TableClient({
   // Active column popover menu
   const [activePopover, setActivePopover] = useState<string | null>(null);
 
+  // Sync health state: 'ok' | 'failed'
+  const [syncStatus, setSyncStatus] = useState<'ok' | 'failed'>('ok');
+
   // Column-specific search text
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
 
@@ -83,10 +86,14 @@ export default function TableClient({
           const json = await res.json();
           if (json.placements && Array.isArray(json.placements)) {
             setData(json.placements);
+            setSyncStatus('ok');
           }
+        } else {
+          setSyncStatus('failed');
         }
       } catch (err) {
         console.error('Silent auto-poll error:', err);
+        setSyncStatus('failed');
       }
     }, 6000);
 
@@ -191,6 +198,7 @@ export default function TableClient({
       if (!response.ok) throw new Error('Update failed');
 
       setSavingStatus((prev) => ({ ...prev, [cellKey]: 'saved' }));
+      setSyncStatus('ok');
       setTimeout(() => {
         setSavingStatus((prev) => {
           const next = { ...prev };
@@ -201,6 +209,7 @@ export default function TableClient({
     } catch (err) {
       console.error('Error saving cell edit:', err);
       setSavingStatus((prev) => ({ ...prev, [cellKey]: 'error' }));
+      setSyncStatus('failed');
     }
   };
 
@@ -239,12 +248,23 @@ export default function TableClient({
   // Compact Inline Pagination Bar
   const renderPaginationBar = (isBottom = false) => (
     <div className={`flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-lime-900 font-medium ${isBottom ? 'pt-2' : 'pb-2 border-b border-lime-100'}`}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <span className="text-slate-600">
           Showing <strong className="text-slate-900">{filteredAndSortedData.length === 0 ? 0 : startIndex + 1}</strong>-
           <strong className="text-slate-900">{Math.min(startIndex + rowsPerPage, filteredAndSortedData.length)}</strong> of{' '}
           <strong className="text-slate-900">{filteredAndSortedData.length}</strong> rows
         </span>
+
+        {/* Dynamic Real-time Sync Status indicator */}
+        {syncStatus === 'failed' ? (
+          <span className="flex items-center gap-1 text-[11px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full border border-red-200">
+            🔴 Sync Failed (Check Notion Connection)
+          </span>
+        ) : (
+          <span className="flex items-center gap-1 text-[11px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+            🟢 Real-time Notion Connection OK
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-1.5">
@@ -274,7 +294,7 @@ export default function TableClient({
   return (
     <div className="flex flex-col gap-2 w-full relative">
       
-      {/* Click-Outside Backdrop */}
+      {/* Reliable Click-Outside Backdrop */}
       {activePopover && (
         <div
           className="fixed inset-0 z-20 bg-transparent"
@@ -285,7 +305,7 @@ export default function TableClient({
       {/* TOP PAGINATION BAR */}
       {renderPaginationBar(false)}
 
-      {/* Table Container with Horizontal Scroll & Wrap Text styling */}
+      {/* Table Container with Horizontal Scroll */}
       <div className="w-full overflow-x-auto border border-lime-300 rounded-lg shadow-xs bg-white min-h-[450px]">
         <table className="w-full text-left text-xs border-collapse">
           <thead className="bg-lime-100 text-lime-950 font-semibold border-b border-lime-300 sticky top-0 z-10">
@@ -320,16 +340,18 @@ export default function TableClient({
 
                     {/* Dynamic Column Popover Menu */}
                     {isPopoverOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-lime-300 p-3 z-30 text-slate-800 text-xs font-normal normal-case">
-                        
+                      <div
+                        onClick={(e) => e.stopPropagation()} // STOP PROPAGATION SO CLICKING INSIDE NEVER CLOSES POPOVER
+                        className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-lime-300 p-3 z-30 text-slate-800 text-xs font-normal normal-case"
+                      >
                         {/* Sort Actions */}
                         <div className="flex flex-col gap-1 pb-2 border-b border-lime-100">
                           <span className="font-bold text-lime-900 mb-1">Sort Column</span>
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setSortColumn(header);
                               setSortDirection('asc');
-                              setActivePopover(null);
                             }}
                             className={`flex items-center gap-2 p-1.5 rounded hover:bg-lime-50 text-left ${
                               sortColumn === header && sortDirection === 'asc' ? 'bg-lime-100 font-bold' : ''
@@ -338,10 +360,10 @@ export default function TableClient({
                             <span>⬆️ Sort Ascending (A → Z)</span>
                           </button>
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setSortColumn(header);
                               setSortDirection('desc');
-                              setActivePopover(null);
                             }}
                             className={`flex items-center gap-2 p-1.5 rounded hover:bg-lime-50 text-left ${
                               sortColumn === header && sortDirection === 'desc' ? 'bg-lime-100 font-bold' : ''
@@ -361,6 +383,7 @@ export default function TableClient({
                             onChange={(e) =>
                               setColumnSearch({ ...columnSearch, [header]: e.target.value })
                             }
+                            onClick={(e) => e.stopPropagation()}
                             className="w-full p-1.5 border border-lime-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-lime-600 bg-lime-50/50"
                           />
                         </div>
@@ -374,6 +397,7 @@ export default function TableClient({
                               return (
                                 <label
                                   key={opt}
+                                  onClick={(e) => e.stopPropagation()}
                                   className="flex items-center gap-2 p-1 hover:bg-lime-50 rounded cursor-pointer text-slate-700"
                                 >
                                   <input
@@ -392,9 +416,9 @@ export default function TableClient({
                         {/* Clear Filter Footer */}
                         {isFiltered && (
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               clearColumnFilter(header);
-                              setActivePopover(null);
                             }}
                             className="w-full mt-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded text-xs border border-red-200 transition-colors"
                           >
