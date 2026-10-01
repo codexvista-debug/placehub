@@ -1,8 +1,5 @@
-import React from 'react';
+import { NextResponse } from 'next/server';
 import { Client } from '@notionhq/client';
-import TableClient from './components/TableClient';
-
-export const revalidate = 0; // Disable caching so it always shows fresh Notion data
 
 function extractPropValue(prop: any) {
   if (!prop) return '-';
@@ -35,44 +32,13 @@ function extractPropValue(prop: any) {
   }
 }
 
-export default async function Home() {
-  let placements: any[] = [];
-  let columnHeaders: string[] = [];
-  let columnSchema: Record<string, { type: string; options: string[] }> = {};
-  let errorMsg = null;
-
+export async function GET() {
   try {
     const notion = new Client({ auth: process.env.NOTION_API_KEY });
     const databaseId = process.env.NOTION_DATABASE_ID;
 
     if (!databaseId) throw new Error("Missing Database ID");
 
-    // Fetch database schema for dropdown options
-    try {
-      // @ts-ignore
-      const schemaRes = await notion.dataSources.retrieve({ data_source_id: databaseId });
-      const props = schemaRes.properties || {};
-
-      Object.keys(props).forEach((key) => {
-        const prop = props[key];
-        const type = prop.type;
-        let options: string[] = [];
-
-        if (type === 'select' && prop.select?.options) {
-          options = prop.select.options.map((o: any) => o.name);
-        } else if (type === 'multi_select' && prop.multi_select?.options) {
-          options = prop.multi_select.options.map((o: any) => o.name);
-        } else if (type === 'status' && prop.status?.options) {
-          options = prop.status.options.map((o: any) => o.name);
-        }
-
-        columnSchema[key] = { type, options };
-      });
-    } catch (e) {
-      console.warn("Could not retrieve schema options:", e);
-    }
-
-    // Retrieve all results using Notion pagination (up to 500 rows)
     let hasMore = true;
     let cursor: string | undefined = undefined;
     let allResults: any[] = [];
@@ -89,6 +55,9 @@ export default async function Home() {
       hasMore = response.has_more;
       cursor = response.next_cursor || undefined;
     }
+
+    let columnHeaders: string[] = [];
+    let placements: any[] = [];
 
     if (allResults.length > 0) {
       const sampleProps = (allResults[0] as any).properties;
@@ -127,31 +96,8 @@ export default async function Home() {
       });
     }
 
+    return NextResponse.json({ placements, columnHeaders });
   } catch (error: any) {
-    console.error("Notion API Error:", error);
-    errorMsg = error.message;
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  return (
-    <div className="min-h-screen bg-lime-50 text-slate-900 p-3 sm:p-6 md:p-8 font-[family-name:var(--font-geist-sans)]">
-      <main className="w-full max-w-full mx-auto flex flex-col gap-4 bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-lime-200 overflow-hidden">
-        
-        <section className="w-full overflow-hidden">
-          {errorMsg ? (
-            <div className="bg-red-50 text-red-700 p-4 rounded-md border border-red-200">
-              <p className="font-bold">Error connecting to Notion:</p>
-              <p>{errorMsg}</p>
-            </div>
-          ) : placements.length === 0 ? (
-            <div className="bg-amber-50 text-amber-700 p-4 rounded-md border border-amber-200">
-              Your Notion database is connected, but no rows were found.
-            </div>
-          ) : (
-            <TableClient placements={placements} columnHeaders={columnHeaders} columnSchema={columnSchema} />
-          )}
-        </section>
-
-      </main>
-    </div>
-  );
 }
