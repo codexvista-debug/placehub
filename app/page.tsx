@@ -38,6 +38,7 @@ function extractPropValue(prop: any) {
 export default async function Home() {
   let placements: any[] = [];
   let columnHeaders: string[] = [];
+  let columnTypes: Record<string, string> = {};
   let errorMsg = null;
 
   try {
@@ -67,6 +68,11 @@ export default async function Home() {
     if (allResults.length > 0) {
       const sampleProps = (allResults[0] as any).properties;
       const allPropKeys = Object.keys(sampleProps);
+
+      // Store column types for dynamic inline editing
+      allPropKeys.forEach((key) => {
+        columnTypes[key] = sampleProps[key]?.type || 'rich_text';
+      });
 
       // Define logical preferred column order
       const preferredOrder = [
@@ -109,19 +115,9 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-lime-50 text-slate-900 p-3 sm:p-6 md:p-10 font-[family-name:var(--font-geist-sans)]">
-      <main className="w-full max-w-full mx-auto flex flex-col gap-6 bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-sm border border-lime-200 overflow-hidden">
+    <div className="min-h-screen bg-lime-50 text-slate-900 p-3 sm:p-6 md:p-8 font-[family-name:var(--font-geist-sans)]">
+      <main className="w-full max-w-full mx-auto flex flex-col gap-4 bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-lime-200 overflow-hidden">
         
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-lime-100 pb-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-lime-900">PlaceRover Dashboard</h1>
-            <p className="text-sm text-lime-700 mt-1">Live synchronized Notion Database table</p>
-          </div>
-          <button className="bg-lime-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-lime-700 transition-colors shadow-sm self-stretch sm:self-auto text-center">
-            + Quick Add to Notion
-          </button>
-        </header>
-
         <section className="w-full overflow-hidden">
           {errorMsg ? (
             <div className="bg-red-50 text-red-700 p-4 rounded-md border border-red-200">
@@ -133,7 +129,7 @@ export default async function Home() {
               Your Notion database is connected, but no rows were found.
             </div>
           ) : (
-            <TableClient placements={placements} columnHeaders={columnHeaders} />
+            <TableClient placements={placements} columnHeaders={columnHeaders} columnTypes={columnTypes} />
           )}
         </section>
 
