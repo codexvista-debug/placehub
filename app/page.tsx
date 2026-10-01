@@ -3,8 +3,40 @@ import { Client } from '@notionhq/client';
 
 export const revalidate = 0; // Disable caching so it always shows fresh Notion data
 
+function extractPropValue(prop: any) {
+  if (!prop) return '-';
+  switch (prop.type) {
+    case 'title':
+      return prop.title?.map((t: any) => t.plain_text).join('') || '-';
+    case 'rich_text':
+      return prop.rich_text?.map((t: any) => t.plain_text).join('') || '-';
+    case 'select':
+      return prop.select?.name || '-';
+    case 'multi_select':
+      return prop.multi_select?.map((s: any) => s.name).join(', ') || '-';
+    case 'status':
+      return prop.status?.name || '-';
+    case 'date':
+      if (!prop.date) return '-';
+      return prop.date.end ? `${prop.date.start} → ${prop.date.end}` : prop.date.start;
+    case 'email':
+      return prop.email || '-';
+    case 'phone_number':
+      return prop.phone_number || '-';
+    case 'number':
+      return prop.number !== null && prop.number !== undefined ? String(prop.number) : '-';
+    case 'url':
+      return prop.url || '-';
+    case 'checkbox':
+      return prop.checkbox ? 'Yes' : 'No';
+    default:
+      return '-';
+  }
+}
+
 export default async function Home() {
   let placements: any[] = [];
+  let columnHeaders: string[] = [];
   let errorMsg = null;
 
   try {
@@ -13,30 +45,49 @@ export default async function Home() {
 
     if (!databaseId) throw new Error("Missing Database ID");
 
-    // @ts-ignore - The Notion client types sometimes omit query in newer strict TS versions
+    // @ts-ignore - Notion SDK v5 compatibility
     const response = await notion.dataSources.query({
       data_source_id: databaseId,
     });
 
-    placements = response.results.map((page: any) => {
-      const props = page.properties;
-      
-      // The Title property in your DB is named "Date"
-      const titlePropKey = Object.keys(props).find(k => props[k].type === 'title');
-      const dateTitle = titlePropKey && props[titlePropKey].title?.[0] ? props[titlePropKey].title[0].plain_text : '-';
+    if (response.results.length > 0) {
+      const sampleProps = (response.results[0] as any).properties;
+      const allPropKeys = Object.keys(sampleProps);
 
-      // Helper to safely extract select/multi-select values
-      const getSelect = (prop: any) => prop?.select?.name || (prop?.multi_select?.[0]?.name) || '-';
+      // Define logical preferred column order
+      const preferredOrder = [
+        'Date',
+        'Interview Time',
+        'Consultant Name',
+        'Position',
+        'Vendor / Client',
+        'Status',
+        'Marketer',
+        'Support',
+        'Recruiter',
+        'Recruiter Email',
+        'Recruiter Phone',
+        'Update'
+      ];
 
-      return {
-        id: page.id,
-        date: dateTitle,
-        consultant: getSelect(props['Consultant Name']),
-        position: getSelect(props['Position']),
-        client: getSelect(props['Vendor / Client']),
-        status: getSelect(props['Status']),
-      };
-    });
+      // Sort column headers by preferred order, putting any extra columns at the end
+      columnHeaders = allPropKeys.sort((a, b) => {
+        const indexA = preferredOrder.indexOf(a);
+        const indexB = preferredOrder.indexOf(b);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+
+      placements = response.results.map((page: any) => {
+        const rowData: Record<string, string> = { id: page.id };
+        columnHeaders.forEach((key) => {
+          rowData[key] = extractPropValue(page.properties[key]);
+        });
+        return rowData;
+      });
+    }
 
   } catch (error: any) {
     console.error("Notion API Error:", error);
@@ -44,19 +95,20 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-lime-50 text-slate-900 p-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="max-w-5xl mx-auto flex flex-col gap-8 bg-white p-8 rounded-xl shadow-sm border border-lime-200">
+    <div className="min-h-screen bg-lime-50 text-slate-900 p-4 sm:p-8 md:p-12 font-[family-name:var(--font-geist-sans)]">
+      <main className="max-w-[98%] mx-auto flex flex-col gap-6 bg-white p-4 sm:p-8 rounded-xl shadow-sm border border-lime-200">
         
-        <header className="flex justify-between items-center border-b border-lime-100 pb-4">
-          <h1 className="text-3xl font-bold text-lime-900">PlaceRover Dashboard</h1>
-          <button className="bg-lime-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-lime-700 transition-colors shadow-sm">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-lime-100 pb-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-lime-900">PlaceRover Dashboard</h1>
+            <p className="text-sm text-lime-700 mt-1">Live synchronized Notion Database table</p>
+          </div>
+          <button className="bg-lime-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-lime-700 transition-colors shadow-sm self-stretch sm:self-auto text-center">
             + Quick Add to Notion
           </button>
         </header>
 
         <section>
-          <h2 className="text-xl font-semibold mb-4 text-lime-800">Live Interview Placements</h2>
-          
           {errorMsg ? (
             <div className="bg-red-50 text-red-700 p-4 rounded-md border border-red-200">
               <p className="font-bold">Error connecting to Notion:</p>
@@ -67,29 +119,42 @@ export default async function Home() {
               Your Notion database is connected, but no rows were found.
             </div>
           ) : (
-            <div className="overflow-hidden border border-lime-200 rounded-lg shadow-sm">
-              <table className="min-w-full text-left text-sm bg-white">
-                <thead className="border-b border-lime-200 bg-lime-100 text-lime-900">
+            <div className="w-full overflow-x-auto border border-lime-300 rounded-lg shadow-sm">
+              <table className="min-w-full text-left text-xs sm:text-sm bg-white border-collapse">
+                <thead className="bg-lime-100 text-lime-950 font-semibold border-b border-lime-300">
                   <tr>
-                    <th className="px-6 py-4 font-semibold">Date</th>
-                    <th className="px-6 py-4 font-semibold">Consultant</th>
-                    <th className="px-6 py-4 font-semibold">Position</th>
-                    <th className="px-6 py-4 font-semibold">Vendor / Client</th>
-                    <th className="px-6 py-4 font-semibold">Status</th>
+                    {columnHeaders.map((header) => (
+                      <th 
+                        key={header} 
+                        className="px-4 py-3 border-r border-lime-300 last:border-r-0 whitespace-nowrap bg-lime-100"
+                      >
+                        {header}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-lime-100">
+                <tbody className="divide-y divide-lime-200">
                   {placements.map((row) => (
-                    <tr key={row.id} className="hover:bg-lime-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-slate-800">{row.date}</td>
-                      <td className="px-6 py-4 text-slate-700">{row.consultant}</td>
-                      <td className="px-6 py-4 text-slate-700">{row.position}</td>
-                      <td className="px-6 py-4 font-medium text-slate-800">{row.client}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-lime-100 text-lime-800 border border-lime-200">
-                          {row.status}
-                        </span>
-                      </td>
+                    <tr key={row.id} className="hover:bg-lime-50/70 transition-colors">
+                      {columnHeaders.map((header) => {
+                        const val = row[header];
+                        const isStatus = header.toLowerCase() === 'status';
+
+                        return (
+                          <td 
+                            key={header} 
+                            className="px-4 py-3 border-r border-lime-200 last:border-r-0 text-slate-700 max-w-xs truncate"
+                          >
+                            {isStatus && val !== '-' ? (
+                              <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-lime-100 text-lime-900 border border-lime-300">
+                                {val}
+                              </span>
+                            ) : (
+                              val
+                            )}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
