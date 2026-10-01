@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 
 interface SchemaInfo {
   type: string;
@@ -56,6 +56,7 @@ export default function TableClient({
 
   // Active column popover menu
   const [activePopover, setActivePopover] = useState<string | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   // Sync health state: 'ok' | 'failed'
   const [syncStatus, setSyncStatus] = useState<'ok' | 'failed'>('ok');
@@ -74,6 +75,20 @@ export default function TableClient({
   const [editingCell, setEditingCell] = useState<{ rowId: string; header: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [savingStatus, setSavingStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
+
+  // Close popover when clicking anywhere outside
+  useEffect(() => {
+    if (!activePopover) return;
+
+    const handleDocumentClick = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setActivePopover(null);
+      }
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, [activePopover]);
 
   // Real-time Silent Polling
   useEffect(() => {
@@ -292,23 +307,15 @@ export default function TableClient({
   );
 
   return (
-    <div className="flex flex-col gap-2 w-full relative">
+    <div className="flex flex-col gap-2 w-full">
       
-      {/* Reliable Click-Outside Backdrop */}
-      {activePopover && (
-        <div
-          className="fixed inset-0 z-20 bg-transparent"
-          onClick={() => setActivePopover(null)}
-        />
-      )}
-
       {/* TOP PAGINATION BAR */}
       {renderPaginationBar(false)}
 
       {/* Table Container with Horizontal Scroll */}
       <div className="w-full overflow-x-auto border border-lime-300 rounded-lg shadow-xs bg-white min-h-[450px]">
         <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-lime-100 text-lime-950 font-semibold border-b border-lime-300 sticky top-0 z-10">
+          <thead className="bg-lime-100 text-lime-950 font-semibold border-b border-lime-300 sticky top-0 z-30">
             <tr>
               {columnHeaders.map((header) => {
                 const isFiltered = isColumnFilteredOrSorted(header);
@@ -325,11 +332,12 @@ export default function TableClient({
 
                       {/* Header Filter/Sort Trigger Button */}
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setActivePopover(isPopoverOpen ? null : header);
                         }}
-                        className={`p-0.5 px-1 rounded hover:bg-lime-200 transition-colors shrink-0 ${
+                        className={`p-0.5 px-1 rounded hover:bg-lime-200 transition-colors shrink-0 cursor-pointer ${
                           isFiltered ? 'text-lime-900 bg-lime-300 font-bold' : 'text-lime-700'
                         }`}
                         title="Sort & Filter Column"
@@ -341,32 +349,37 @@ export default function TableClient({
                     {/* Dynamic Column Popover Menu */}
                     {isPopoverOpen && (
                       <div
-                        onClick={(e) => e.stopPropagation()} // STOP PROPAGATION SO CLICKING INSIDE NEVER CLOSES POPOVER
-                        className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-lime-300 p-3 z-30 text-slate-800 text-xs font-normal normal-case"
+                        ref={popoverRef}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-2xl border-2 border-lime-400 p-3 z-50 text-slate-800 text-xs font-normal normal-case"
                       >
                         {/* Sort Actions */}
                         <div className="flex flex-col gap-1 pb-2 border-b border-lime-100">
                           <span className="font-bold text-lime-900 mb-1">Sort Column</span>
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSortColumn(header);
                               setSortDirection('asc');
+                              setActivePopover(null);
                             }}
-                            className={`flex items-center gap-2 p-1.5 rounded hover:bg-lime-50 text-left ${
-                              sortColumn === header && sortDirection === 'asc' ? 'bg-lime-100 font-bold' : ''
+                            className={`flex items-center gap-2 p-1.5 rounded hover:bg-lime-50 text-left cursor-pointer ${
+                              sortColumn === header && sortDirection === 'asc' ? 'bg-lime-100 font-bold text-lime-950' : ''
                             }`}
                           >
                             <span>⬆️ Sort Ascending (A → Z)</span>
                           </button>
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSortColumn(header);
                               setSortDirection('desc');
+                              setActivePopover(null);
                             }}
-                            className={`flex items-center gap-2 p-1.5 rounded hover:bg-lime-50 text-left ${
-                              sortColumn === header && sortDirection === 'desc' ? 'bg-lime-100 font-bold' : ''
+                            className={`flex items-center gap-2 p-1.5 rounded hover:bg-lime-50 text-left cursor-pointer ${
+                              sortColumn === header && sortDirection === 'desc' ? 'bg-lime-100 font-bold text-lime-950' : ''
                             }`}
                           >
                             <span>⬇️ Sort Descending (Z → A)</span>
@@ -378,19 +391,19 @@ export default function TableClient({
                           <span className="font-bold text-lime-900 mb-1">Search {header}</span>
                           <input
                             type="text"
-                            placeholder={`Search ${header}...`}
+                            placeholder={`Type to search ${header}...`}
                             value={columnSearch[header] || ''}
                             onChange={(e) =>
                               setColumnSearch({ ...columnSearch, [header]: e.target.value })
                             }
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full p-1.5 border border-lime-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-lime-600 bg-lime-50/50"
+                            className="w-full p-1.5 border border-lime-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-lime-500 bg-lime-50/50 text-slate-900"
                           />
                         </div>
 
                         {/* Value Checklist Filter */}
                         {options.length > 0 && (
-                          <div className="py-2 flex flex-col gap-1 max-h-40 overflow-y-auto">
+                          <div className="py-2 flex flex-col gap-1 max-h-44 overflow-y-auto">
                             <span className="font-bold text-lime-900 mb-1">Filter Values ({options.length})</span>
                             {options.map((opt) => {
                               const isChecked = (columnSelectedValues[header] || []).includes(opt);
@@ -398,13 +411,16 @@ export default function TableClient({
                                 <label
                                   key={opt}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="flex items-center gap-2 p-1 hover:bg-lime-50 rounded cursor-pointer text-slate-700"
+                                  className="flex items-center gap-2 p-1.5 hover:bg-lime-50 rounded cursor-pointer text-slate-800 text-xs select-none"
                                 >
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
-                                    onChange={() => toggleValueFilter(header, opt)}
-                                    className="accent-lime-600 rounded"
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      toggleValueFilter(header, opt);
+                                    }}
+                                    className="accent-lime-600 rounded w-3.5 h-3.5"
                                   />
                                   <span className="truncate">{opt}</span>
                                 </label>
@@ -416,11 +432,13 @@ export default function TableClient({
                         {/* Clear Filter Footer */}
                         {isFiltered && (
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               clearColumnFilter(header);
+                              setActivePopover(null);
                             }}
-                            className="w-full mt-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded text-xs border border-red-200 transition-colors"
+                            className="w-full mt-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded text-xs border border-red-200 transition-colors cursor-pointer"
                           >
                             Clear Column Filter
                           </button>
