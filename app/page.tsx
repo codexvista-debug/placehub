@@ -1,5 +1,6 @@
 import React from 'react';
 import { Client } from '@notionhq/client';
+import TableClient from './components/TableClient';
 
 export const revalidate = 0; // Disable caching so it always shows fresh Notion data
 
@@ -45,13 +46,26 @@ export default async function Home() {
 
     if (!databaseId) throw new Error("Missing Database ID");
 
-    // @ts-ignore - Notion SDK v5 compatibility
-    const response = await notion.dataSources.query({
-      data_source_id: databaseId,
-    });
+    // Retrieve all results using Notion pagination (up to 500 rows)
+    let hasMore = true;
+    let cursor: string | undefined = undefined;
+    let allResults: any[] = [];
 
-    if (response.results.length > 0) {
-      const sampleProps = (response.results[0] as any).properties;
+    while (hasMore && allResults.length < 500) {
+      // @ts-ignore - Notion SDK v5 compatibility
+      const response = await notion.dataSources.query({
+        data_source_id: databaseId,
+        start_cursor: cursor,
+        page_size: 100,
+      });
+
+      allResults.push(...response.results);
+      hasMore = response.has_more;
+      cursor = response.next_cursor || undefined;
+    }
+
+    if (allResults.length > 0) {
+      const sampleProps = (allResults[0] as any).properties;
       const allPropKeys = Object.keys(sampleProps);
 
       // Define logical preferred column order
@@ -70,7 +84,7 @@ export default async function Home() {
         'Update'
       ];
 
-      // Sort column headers by preferred order, putting any extra columns at the end
+      // Sort column headers by preferred order
       columnHeaders = allPropKeys.sort((a, b) => {
         const indexA = preferredOrder.indexOf(a);
         const indexB = preferredOrder.indexOf(b);
@@ -80,7 +94,7 @@ export default async function Home() {
         return a.localeCompare(b);
       });
 
-      placements = response.results.map((page: any) => {
+      placements = allResults.map((page: any) => {
         const rowData: Record<string, string> = { id: page.id };
         columnHeaders.forEach((key) => {
           rowData[key] = extractPropValue(page.properties[key]);
@@ -95,8 +109,8 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-lime-50 text-slate-900 p-4 sm:p-8 md:p-12 font-[family-name:var(--font-geist-sans)]">
-      <main className="max-w-[98%] mx-auto flex flex-col gap-6 bg-white p-4 sm:p-8 rounded-xl shadow-sm border border-lime-200">
+    <div className="min-h-screen bg-lime-50 text-slate-900 p-3 sm:p-6 md:p-10 font-[family-name:var(--font-geist-sans)]">
+      <main className="w-full max-w-full mx-auto flex flex-col gap-6 bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-sm border border-lime-200 overflow-hidden">
         
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-lime-100 pb-4">
           <div>
@@ -108,7 +122,7 @@ export default async function Home() {
           </button>
         </header>
 
-        <section>
+        <section className="w-full overflow-hidden">
           {errorMsg ? (
             <div className="bg-red-50 text-red-700 p-4 rounded-md border border-red-200">
               <p className="font-bold">Error connecting to Notion:</p>
@@ -119,47 +133,7 @@ export default async function Home() {
               Your Notion database is connected, but no rows were found.
             </div>
           ) : (
-            <div className="w-full overflow-x-auto border border-lime-300 rounded-lg shadow-sm">
-              <table className="min-w-full text-left text-xs sm:text-sm bg-white border-collapse">
-                <thead className="bg-lime-100 text-lime-950 font-semibold border-b border-lime-300">
-                  <tr>
-                    {columnHeaders.map((header) => (
-                      <th 
-                        key={header} 
-                        className="px-4 py-3 border-r border-lime-300 last:border-r-0 whitespace-nowrap bg-lime-100"
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-lime-200">
-                  {placements.map((row) => (
-                    <tr key={row.id} className="hover:bg-lime-50/70 transition-colors">
-                      {columnHeaders.map((header) => {
-                        const val = row[header];
-                        const isStatus = header.toLowerCase() === 'status';
-
-                        return (
-                          <td 
-                            key={header} 
-                            className="px-4 py-3 border-r border-lime-200 last:border-r-0 text-slate-700 max-w-xs truncate"
-                          >
-                            {isStatus && val !== '-' ? (
-                              <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-lime-100 text-lime-900 border border-lime-300">
-                                {val}
-                              </span>
-                            ) : (
-                              val
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TableClient placements={placements} columnHeaders={columnHeaders} />
           )}
         </section>
 
