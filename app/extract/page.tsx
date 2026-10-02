@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 
 interface DropdownOptions {
@@ -15,7 +15,7 @@ interface DropdownOptions {
 export default function ExtractPage() {
   const [rawText, setRawText] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
-  const [extractSuccessMsg, setExtractSuccessMsg] = useState(false);
+  const [lastFilledCount, setLastFilledCount] = useState<number | null>(null);
 
   // Form Fields
   const [formData, setFormData] = useState({
@@ -90,13 +90,14 @@ export default function ExtractPage() {
     loadOptions();
   }, []);
 
-  // Intelligent Multi-Pattern Extraction Engine
-  const handleQuickExtract = () => {
-    if (!rawText.trim()) return;
-    setIsExtracting(true);
-    setExtractSuccessMsg(false);
+  // Intelligent Multi-Pattern Extraction Function
+  const extractDetails = useCallback((text: string) => {
+    if (!text || !text.trim()) {
+      setLastFilledCount(null);
+      return;
+    }
 
-    const text = rawText;
+    setIsExtracting(true);
 
     // 1. Consultant Name Extraction
     let extractedConsultant = '';
@@ -144,7 +145,9 @@ export default function ExtractPage() {
     for (const pattern of clientPatterns) {
       const match = text.match(pattern);
       if (match && match[1]?.trim()) {
-        const val = match[1].trim().replace(/[.,;:]+$/, '');
+        let val = match[1].trim().replace(/[.,;:]+$/, '');
+        // Clean trailing words
+        val = val.replace(/\s+(Can|Please|Let|Check|We|If|Is|For)$/i, '').trim();
         if (val.length > 1 && !/^(the|an|a|our|is|for)$/i.test(val)) {
           extractedClient = val;
           break;
@@ -152,17 +155,21 @@ export default function ExtractPage() {
       }
     }
 
-    // 4. Support Extraction
+    // 4. Support Extraction (Cleaned to avoid trailing 'is')
     let extractedSupport = '';
     const supportPatterns = [
-      /(?:check if|is|assigned|for)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:is available for support|is available for|for support|available for support|can support)/i,
+      /(?:check if|if|ask|assigned to|for)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:is available|can support|for support|available for support|can join|is taking)/i,
       /(?:Support(?:\s+Person)?|Tech Support)\s*[:\-]\s*([A-Za-z\s\.\'\-]+?)(?:\n|\r|$|\|)/i,
     ];
     for (const pattern of supportPatterns) {
       const match = text.match(pattern);
       if (match && match[1]?.trim()) {
-        extractedSupport = match[1].trim();
-        break;
+        let name = match[1].trim();
+        name = name.replace(/\s+(is|for|to|can|will|the|available|support)$/i, '').trim();
+        if (name && name.length > 1) {
+          extractedSupport = name;
+          break;
+        }
       }
     }
 
@@ -218,7 +225,6 @@ export default function ExtractPage() {
       jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
     };
 
-    // Date search in text or in the extracted time string
     const textToSearchForDate = `${extractedTime} ${text}`;
     const wordDateMatch = textToSearchForDate.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})/i);
     const isoDateMatch = textToSearchForDate.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
@@ -243,7 +249,20 @@ export default function ExtractPage() {
     const phoneMatch = text.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{4}/);
     const recruiterMatch = text.match(/(?:Recruiter(?:\s+Name)?|Contact Person|HR)\s*[:\-]\s*([A-Za-z\s\.\'\-]+?)(?:\(|\n|\r|$|email)/i);
 
-    // Update form state with smart extracted values (keeping existing if not extracted)
+    // Count how many non-empty fields were extracted
+    let count = 0;
+    if (extractedConsultant) count++;
+    if (extractedPosition) count++;
+    if (extractedClient) count++;
+    if (extractedStatus) count++;
+    if (extractedDate) count++;
+    if (extractedTime) count++;
+    if (extractedMarketer) count++;
+    if (extractedSupport) count++;
+    if (recruiterMatch) count++;
+    if (emailMatch) count++;
+    if (phoneMatch) count++;
+
     setFormData((prev) => ({
       ...prev,
       consultantName: extractedConsultant || prev.consultantName,
@@ -260,11 +279,32 @@ export default function ExtractPage() {
       update: text.length > 300 ? text.substring(0, 300) + '...' : text,
     }));
 
-    setTimeout(() => {
-      setIsExtracting(false);
-      setExtractSuccessMsg(true);
-      setTimeout(() => setExtractSuccessMsg(false), 5000);
-    }, 200);
+    setLastFilledCount(count);
+    setIsExtracting(false);
+  }, []);
+
+  // Automatic Debounced Extraction on Paste or Type
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setRawText(val);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      extractDetails(val);
+    }, 150);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData('text');
+    if (pasted) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      // Run immediately on paste
+      setTimeout(() => {
+        extractDetails(pasted);
+      }, 50);
+    }
   };
 
   // Submit placement directly to Notion API
@@ -287,7 +327,7 @@ export default function ExtractPage() {
       }
 
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 6000);
+      setTimeout(() => setSaveSuccess(false), 8000);
     } catch (err: any) {
       console.error('Error saving placement:', err);
       setSaveError(err.message || 'Error communicating with Notion');
@@ -309,7 +349,7 @@ export default function ExtractPage() {
             <span>⚡</span> Text Extractor &amp; Quick Add
           </h1>
           <p className="text-xs sm:text-sm theme-text-muted mt-1">
-            Paste raw interview details or email snippets on the left to auto-extract fields, review, and sync to Notion.
+            Paste raw interview details on the left — fields are automatically extracted and synced straight to your Notion database.
           </p>
         </div>
         <Link
@@ -354,7 +394,7 @@ export default function ExtractPage() {
       {/* 2-COLUMN SIDE BY SIDE LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* LEFT COLUMN: Raw Text Area & Action (5 / 12 width) */}
+        {/* LEFT COLUMN: Raw Text Area & Auto Indicator (5 / 12 width) */}
         <div className="lg:col-span-5 p-5 sm:p-6 rounded-xl shadow-sm border flex flex-col gap-4 theme-surface theme-border">
           <div className="flex items-center justify-between">
             <span className="font-bold text-sm theme-text flex items-center gap-1.5">
@@ -363,7 +403,10 @@ export default function ExtractPage() {
             {rawText && (
               <button
                 type="button"
-                onClick={() => setRawText('')}
+                onClick={() => {
+                  setRawText('');
+                  setLastFilledCount(null);
+                }}
                 className="text-[11px] theme-text-muted hover:text-red-600 transition-colors font-semibold cursor-pointer"
               >
                 Clear Text
@@ -374,36 +417,48 @@ export default function ExtractPage() {
           <textarea
             rows={14}
             value={rawText}
-            onChange={(e) => setRawText(e.target.value)}
-            placeholder={`Paste any text snippet here, e.g.:
+            onChange={handleTextChange}
+            onPaste={handlePaste}
+            placeholder={`Paste any interview invite or email snippet here — it will auto-extract instantly!
 
+Example:
 Ratna Vallabhaneni has received an invite for FINAL ROUND OF INTERVIEW with Vanguard. Can we check if Sagan is available for support.
 
 INTERVIEW TIME: Fri Oct 02, 2026 04:00 PM - 05:00 PM EST
 --
 Job Title: AI / ML Software Engineer
 Job Description...`}
-            className="w-full p-3.5 border rounded-lg text-xs sm:text-sm font-mono leading-relaxed focus:outline-none theme-input theme-border min-h-[300px] resize-y"
+            className="w-full p-3.5 border rounded-lg text-xs sm:text-sm font-mono leading-relaxed focus:outline-none theme-input theme-border min-h-[320px] resize-y"
           />
 
+          {/* Smart Auto-Extraction Indicator Button */}
           <div className="flex flex-col gap-2 pt-1">
             <button
-              onClick={handleQuickExtract}
-              disabled={!rawText.trim() || isExtracting}
-              className="w-full py-3 font-bold rounded-lg text-sm transition-all disabled:opacity-40 shadow-xs cursor-pointer flex items-center justify-center gap-2 theme-btn"
+              type="button"
+              onClick={() => extractDetails(rawText)}
+              disabled={!rawText.trim()}
+              className="w-full py-3 font-bold rounded-lg text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 theme-btn disabled:opacity-40"
             >
-              <span>{isExtracting ? '⏳ Extracting Fields...' : '⚡ Auto-Extract Data'}</span>
+              {isExtracting ? (
+                <span>⏳ Auto-extracting...</span>
+              ) : lastFilledCount !== null && lastFilledCount > 0 ? (
+                <span>✨ Auto-Extracted ({lastFilledCount} fields filled)</span>
+              ) : rawText.trim() ? (
+                <span>⚡ Re-Analyze &amp; Extract Text</span>
+              ) : (
+                <span>📋 Paste text above to auto-extract</span>
+              )}
             </button>
 
-            {extractSuccessMsg && (
-              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-semibold flex items-center justify-center gap-1.5 animate-fadeIn">
-                <span>✨</span> Extracted successfully! Check and edit the fields on the right.
-              </div>
+            {lastFilledCount !== null && lastFilledCount > 0 && (
+              <p className="text-[11px] text-center font-medium theme-text-muted">
+                ✓ Fields on the right were auto-filled. You can review or edit before saving.
+              </p>
             )}
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Extracted Form Fields & Save to Notion (7 / 12 width) */}
+        {/* RIGHT COLUMN: Extracted Form Fields & Direct Save to Notion (7 / 12 width) */}
         <div className="lg:col-span-7 p-5 sm:p-6 rounded-xl shadow-sm border flex flex-col gap-5 theme-surface theme-border">
           
           <div className="flex items-center justify-between border-b pb-3 theme-border">
@@ -412,26 +467,26 @@ Job Description...`}
                 <span>✍️</span> Review &amp; Edit Extracted Details
               </h2>
               <p className="text-xs theme-text-muted mt-0.5">
-                Verify or tweak the extracted details before saving to Notion.
+                Verify or adjust the details below, then click save to update Notion &amp; the Live Table.
               </p>
             </div>
-            <span className="text-[11px] px-2 py-0.5 rounded-full font-bold theme-surface-alt theme-border border theme-text">
-              Form View
+            <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold theme-surface-alt theme-border border theme-text">
+              Direct Notion Sync
             </span>
           </div>
 
-          {/* Success Banner */}
+          {/* Success Banner with Direct Jump to Live Table */}
           {saveSuccess && (
-            <div className="p-3.5 rounded-lg bg-emerald-100 border border-emerald-400 text-emerald-950 text-xs sm:text-sm font-semibold flex items-center justify-between gap-2 shadow-xs">
+            <div className="p-3.5 rounded-lg bg-emerald-100 border border-emerald-400 text-emerald-950 text-xs sm:text-sm font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs animate-fadeIn">
               <div className="flex items-center gap-2">
-                <span className="text-base">🎉</span>
-                <span>Placement successfully saved to Notion!</span>
+                <span className="text-lg">🎉</span>
+                <span>Placement successfully added to your Notion Database &amp; Live Table!</span>
               </div>
               <Link
                 href="/"
-                className="underline font-bold hover:text-emerald-800 text-xs"
+                className="underline font-extrabold hover:text-emerald-800 text-xs sm:text-sm shrink-0"
               >
-                View Live Table →
+                View in Live Table →
               </Link>
             </div>
           )}
@@ -626,7 +681,7 @@ Job Description...`}
               />
             </div>
 
-            {/* Save Button */}
+            {/* Submit Action */}
             <div className="pt-2 flex items-center justify-end gap-3 border-t theme-border">
               <button
                 type="submit"

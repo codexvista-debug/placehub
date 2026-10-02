@@ -18,7 +18,6 @@ export async function POST(request: Request) {
       const dbInfo = await notion.dataSources.retrieve({ data_source_id: databaseId });
       schemaProps = (dbInfo as any).properties || {};
     } catch {
-      // If dataSources retrieve fails, fallback to databases retrieve or direct build
       try {
         const db = await notion.databases.retrieve({ database_id: databaseId });
         schemaProps = (db as any).properties || {};
@@ -27,12 +26,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const properties: Record<string, any> = {};
-
     // Helper to format a property payload based on target schema
-    const formatValue = (propName: string, value: string, schemaProp: any) => {
-      if (!value && schemaProp?.type !== 'title') return null;
-      const val = value || '';
+    const formatValue = (val: string, schemaProp: any) => {
       const type = schemaProp?.type || 'rich_text';
 
       switch (type) {
@@ -41,25 +36,28 @@ export async function POST(request: Request) {
         case 'rich_text':
           return { rich_text: [{ text: { content: val } }] };
         case 'select':
-          return val ? { select: { name: val } } : null;
+          return { select: { name: val } };
+        case 'multi_select':
+          // Notion multi_select takes an array of option objects
+          return { multi_select: [{ name: val }] };
         case 'status':
-          return val ? { status: { name: val } } : null;
+          return { status: { name: val } };
         case 'date':
-          return val ? { date: { start: val } } : null;
+          return { date: { start: val } };
         case 'email':
-          return val ? { email: val } : null;
+          return { email: val };
         case 'phone_number':
-          return val ? { phone_number: val } : null;
+          return { phone_number: val };
         default:
           return { rich_text: [{ text: { content: val } }] };
       }
     };
 
-    // Mapping between formData keys and possible Notion DB property names
+    // Mapping between formData keys and candidate Notion DB property names
     const fieldMapping: Record<string, string[]> = {
-      date: ['Date', 'date', 'Interview Date'],
+      date: ['Date', 'Interview Date', 'date'],
       interviewTime: ['Interview Time', 'Time', 'interviewTime'],
-      consultantName: ['Consultant Name', 'Consultant', 'Candidate Name', 'Name', 'Title'],
+      consultantName: ['Consultant Name', 'Consultant', 'Candidate Name', 'Candidate', 'Name'],
       position: ['Position', 'Job Title', 'Role', 'position'],
       client: ['Vendor / Client', 'Vendor', 'Client', 'Company', 'client'],
       status: ['Status', 'status'],
@@ -71,36 +69,44 @@ export async function POST(request: Request) {
       update: ['Update', 'Notes', 'Job Description', 'update'],
     };
 
+    const properties: Record<string, any> = {};
+
     // Match formData fields to existing database schema properties
     Object.entries(fieldMapping).forEach(([formKey, candidateNames]) => {
-      const val = (formData[formKey] || '').trim();
+      const rawVal = formData[formKey];
+      if (rawVal === undefined || rawVal === null) return;
+      const val = String(rawVal).trim();
       if (!val) return;
 
       const matchedPropName = candidateNames.find((name) => schemaProps[name]);
       if (matchedPropName) {
         const schemaProp = schemaProps[matchedPropName];
-        const payload = formatValue(matchedPropName, val, schemaProp);
-        if (payload) properties[matchedPropName] = payload;
-      } else {
-        // Fallback: Use standard candidate name if schema wasn't fully resolved
-        const fallbackName = candidateNames[0];
-        properties[fallbackName] = { rich_text: [{ text: { content: val } }] };
+        properties[matchedPropName] = formatValue(val, schemaProp);
       }
     });
 
-    // Make sure title property is set if required by Notion
-    const titlePropKey = Object.keys(schemaProps).find((k) => schemaProps[k].type === 'title');
-    if (titlePropKey && !properties[titlePropKey]) {
-      const titleVal = formData.consultantName || formData.position || 'New Placement';
-      properties[titlePropKey] = { title: [{ text: { content: titleVal } }] };
+    // Ensure title property is never missing (Notion requires the title property)
+    const titlePropKey = Object.keys(schemaProps).find((k) => schemaProps[k].type === 'title') || 'Date';
+    if (!properties[titlePropKey]) {
+      const defaultTitle = formData.date || formData.consultantName || 'New Placement';
+      properties[titlePropKey] = { title: [{ text: { content: defaultTitle } }] };
     }
 
-    // Create page in Notion
-    // @ts-ignore
-    const newPage = await notion.pages.create({
-      parent: { database_id: databaseId },
-      properties,
-    });
+    // Try creating page via data_source_id first, then fallback to database_id
+    let newPage: any;
+    try {
+      // @ts-ignore
+      newPage = await notion.pages.create({
+        parent: { data_source_id: databaseId },
+        properties,
+      });
+    } catch (createErr: any) {
+      // @ts-ignore
+      newPage = await notion.pages.create({
+        parent: { database_id: databaseId },
+        properties,
+      });
+    }
 
     return NextResponse.json({ success: true, pageId: newPage.id });
   } catch (error: any) {
