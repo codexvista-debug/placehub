@@ -3,9 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Header() {
   const pathname = usePathname();
+  const { theme } = useTheme();
 
   const navItems = [
     {
@@ -38,22 +40,40 @@ export default function Header() {
     },
   ];
 
+  // Theme-aware Header Colors
+  let headerBg = 'bg-emerald-950 border-emerald-800 text-white';
+  let logoBg = 'bg-emerald-500 text-emerald-950';
+  let activeBtnBg = 'bg-emerald-700 text-white';
+  let hoverBtnBg = 'hover:bg-emerald-800 text-emerald-100';
+
+  if (theme === 'navy') {
+    headerBg = 'bg-slate-950 border-slate-800 text-white';
+    logoBg = 'bg-indigo-500 text-white';
+    activeBtnBg = 'bg-indigo-600 text-white';
+    hoverBtnBg = 'hover:bg-slate-800 text-slate-200';
+  } else if (theme === 'lime') {
+    headerBg = 'bg-lime-900 border-lime-800 text-white';
+    logoBg = 'bg-lime-500 text-lime-950';
+    activeBtnBg = 'bg-lime-600 text-white';
+    hoverBtnBg = 'hover:bg-lime-800 text-lime-100';
+  }
+
   return (
-    <header className="bg-lime-900 text-white shadow-md border-b border-lime-800 sticky top-0 z-40">
+    <header className={`${headerBg} shadow-md border-b sticky top-0 z-40 transition-colors duration-300`}>
       <div className="max-w-full mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14">
           
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-lime-500 text-lime-950 font-black text-lg flex items-center justify-center shadow-xs">
+            <div className={`w-8 h-8 rounded-lg ${logoBg} font-black text-lg flex items-center justify-center shadow-xs transition-colors`}>
               P
             </div>
-            <Link href="/" className="text-lg font-bold tracking-tight hover:text-lime-200 transition-colors">
+            <Link href="/" className="text-lg font-bold tracking-tight hover:opacity-90 transition-opacity">
               PlaceRover
             </Link>
           </div>
 
-          {/* Navigation Items */}
+          {/* Navigation Items + Theme Icon */}
           <nav className="flex items-center gap-1 sm:gap-2">
             {navItems.map((item) => {
               const isActive = pathname === item.path;
@@ -62,9 +82,7 @@ export default function Header() {
                   key={item.path}
                   href={item.path}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all ${
-                    isActive
-                      ? 'bg-lime-600 text-white shadow-xs'
-                      : 'text-lime-100 hover:bg-lime-800 hover:text-white'
+                    isActive ? activeBtnBg : hoverBtnBg
                   }`}
                 >
                   {item.icon}
@@ -72,6 +90,19 @@ export default function Header() {
                 </Link>
               );
             })}
+
+            {/* Themes Icon (No text label, just icon) */}
+            <Link
+              href="/themes"
+              title="Change Theme"
+              className={`p-2 rounded-md transition-all ${
+                pathname === '/themes' ? activeBtnBg : hoverBtnBg
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+            </Link>
           </nav>
 
         </div>
