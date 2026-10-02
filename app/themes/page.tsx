@@ -3,96 +3,222 @@
 import React from 'react';
 import { useTheme, ThemeName } from '../context/ThemeContext';
 
+const themes: {
+  id: ThemeName;
+  name: string;
+  tagline: string;
+  desc: string;
+  headerColor: string;
+  bgColor: string;
+  cardBg: string;
+  cardBorder: string;
+  accentColor: string;
+  accentText: string;
+  badgeBg: string;
+  badgeText: string;
+  previewText: string;
+}[] = [
+  {
+    id: 'emerald',
+    name: 'Emerald Slate',
+    tagline: '🌿 Corporate & Clean',
+    desc: 'Professional deep-emerald header, soft mint page background, crisp white cards. Built for focus.',
+    headerColor: '#064e3b',
+    bgColor: '#f0fdf4',
+    cardBg: '#ffffff',
+    cardBorder: '#a7f3d0',
+    accentColor: '#059669',
+    accentText: '#ffffff',
+    badgeBg: '#d1fae5',
+    badgeText: '#065f46',
+    previewText: '#064e3b',
+  },
+  {
+    id: 'navy',
+    name: 'Midnight Navy',
+    tagline: '🌙 Dark & Sleek',
+    desc: 'Full dark mode — deep navy backgrounds, cyan neon accents, glowing highlights. Easy on the eyes at night.',
+    headerColor: '#060d1a',
+    bgColor: '#0b1120',
+    cardBg: '#162032',
+    cardBorder: '#2d4a6b',
+    accentColor: '#06b6d4',
+    accentText: '#000000',
+    badgeBg: '#083344',
+    badgeText: '#67e8f9',
+    previewText: '#e2e8f0',
+  },
+  {
+    id: 'rose',
+    name: 'Warm Rose',
+    tagline: '🌸 Warm & Vibrant',
+    desc: 'Deep rose header, blush-pink background, bold crimson accents. Warm, modern, and distinctive.',
+    headerColor: '#881337',
+    bgColor: '#fff1f2',
+    cardBg: '#ffffff',
+    cardBorder: '#fda4af',
+    accentColor: '#e11d48',
+    accentText: '#ffffff',
+    badgeBg: '#ffe4e6',
+    badgeText: '#9f1239',
+    previewText: '#881337',
+  },
+];
+
 export default function ThemesPage() {
   const { theme, setTheme } = useTheme();
 
-  const themesList: { id: ThemeName; name: string; desc: string; previewHeader: string; previewBg: string; previewCard: string }[] = [
-    {
-      id: 'emerald',
-      name: 'Emerald Slate (Recommended)',
-      desc: 'Clean corporate theme with deep emerald headers, soft mint background, and crisp high-contrast cards.',
-      previewHeader: 'bg-emerald-900',
-      previewBg: 'bg-emerald-50',
-      previewCard: 'bg-white border-emerald-300',
-    },
-    {
-      id: 'navy',
-      name: 'Midnight Navy (Dark Theme)',
-      desc: 'Sleek dark mode theme with royal navy headers, dark slate backgrounds, and vibrant neon sapphire badges.',
-      previewHeader: 'bg-slate-950',
-      previewBg: 'bg-slate-900',
-      previewCard: 'bg-slate-800 border-slate-700 text-white',
-    },
-    {
-      id: 'lime',
-      name: 'Lime Rover (Classic)',
-      desc: 'Fresh lime-green theme with vibrant highlights and high visibility spreadsheet gridlines.',
-      previewHeader: 'bg-lime-900',
-      previewBg: 'bg-lime-50',
-      previewCard: 'bg-white border-lime-300',
-    },
-  ];
-
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto font-[family-name:var(--font-geist-sans)]">
-      <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-6">
+      <div
+        className="p-6 sm:p-8 rounded-xl shadow-sm border flex flex-col gap-8 theme-surface theme-border"
+      >
+        {/* Header */}
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold theme-text flex items-center gap-3">
             🎨 Choose Your Website Theme
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-            Select a custom color theme below. Your choice immediately transforms the header, background, table, buttons, and badges across all pages and persists permanently!
+          <p className="text-sm theme-text-muted mt-1 leading-relaxed">
+            Select a theme below. Your choice transforms the header, background, table, buttons, inputs, and badges
+            across <strong>every page</strong> — and persists across sessions.
           </p>
         </div>
 
-        {/* Theme Options Cards */}
+        {/* Theme Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {themesList.map((t) => {
+          {themes.map((t) => {
             const isSelected = theme === t.id;
             return (
               <div
                 key={t.id}
                 onClick={() => setTheme(t.id)}
-                className={`p-5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-4 shadow-sm hover:shadow-md ${
-                  isSelected
-                    ? 'border-emerald-600 ring-2 ring-emerald-500/30 bg-emerald-50/30 dark:bg-slate-700/80'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-400 bg-white dark:bg-slate-800'
-                }`}
+                className="rounded-xl border-2 cursor-pointer transition-all flex flex-col gap-0 shadow-sm hover:shadow-lg overflow-hidden"
+                style={{
+                  borderColor: isSelected ? t.accentColor : t.cardBorder,
+                  boxShadow: isSelected ? `0 0 0 3px ${t.accentColor}40` : '',
+                }}
               >
-                <div className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-base text-slate-900 dark:text-white">{t.name}</h3>
+                {/* Preview: header bar */}
+                <div
+                  className="h-10 flex items-center px-3 gap-2"
+                  style={{ backgroundColor: t.headerColor }}
+                >
+                  {/* Fake logo */}
+                  <div
+                    className="w-5 h-5 rounded font-black text-[10px] flex items-center justify-center"
+                    style={{ backgroundColor: t.accentColor, color: t.accentText }}
+                  >
+                    P
+                  </div>
+                  <span className="text-[10px] font-bold text-white opacity-90">PlaceRover</span>
+                  <div className="ml-auto flex gap-1">
+                    {['Extractor', 'Table'].map((label) => (
+                      <span
+                        key={label}
+                        className="text-[8px] px-1.5 py-0.5 rounded font-semibold"
+                        style={{ backgroundColor: `${t.accentColor}33`, color: 'white' }}
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview: body */}
+                <div
+                  className="p-3 flex flex-col gap-2"
+                  style={{ backgroundColor: t.bgColor }}
+                >
+                  {/* Fake card */}
+                  <div
+                    className="rounded-lg p-2 border flex flex-col gap-1.5"
+                    style={{ backgroundColor: t.cardBg, borderColor: t.cardBorder }}
+                  >
+                    {/* Fake table row */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-medium" style={{ color: t.previewText }}>
+                        John Doe — Senior Engineer
+                      </span>
+                      <span
+                        className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
+                        style={{ backgroundColor: t.badgeBg, color: t.badgeText }}
+                      >
+                        Interview
+                      </span>
+                    </div>
+                    <div
+                      className="h-px w-full"
+                      style={{ backgroundColor: t.cardBorder }}
+                    />
+                    <div className="flex gap-1">
+                      <div
+                        className="h-1.5 rounded-full flex-1"
+                        style={{ backgroundColor: t.accentColor, opacity: 0.5 }}
+                      />
+                      <div
+                        className="h-1.5 rounded-full w-1/3"
+                        style={{ backgroundColor: t.cardBorder }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fake button */}
+                  <div className="flex justify-end">
+                    <span
+                      className="text-[8px] px-2 py-1 rounded font-bold"
+                      style={{ backgroundColor: t.accentColor, color: t.accentText }}
+                    >
+                      Submit Entry
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card footer */}
+                <div
+                  className="p-4 flex flex-col gap-1 border-t"
+                  style={{ backgroundColor: t.cardBg, borderColor: t.cardBorder }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-sm" style={{ color: t.previewText }}>
+                        {t.name}
+                      </h3>
+                      <p className="text-[11px] font-medium" style={{ color: t.accentColor }}>
+                        {t.tagline}
+                      </p>
+                    </div>
                     {isSelected && (
-                      <span className="bg-emerald-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
-                        Active
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: t.accentColor, color: t.accentText }}
+                      >
+                        ✓ Active
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{t.desc}</p>
-                </div>
+                  <p className="text-[11px] mt-1" style={{ color: t.previewText, opacity: 0.75 }}>
+                    {t.desc}
+                  </p>
 
-                {/* Theme Visual Preview Box */}
-                <div className={`p-3 rounded-lg ${t.previewBg} border border-slate-200 flex flex-col gap-2`}>
-                  <div className={`h-4 rounded ${t.previewHeader} w-full`} />
-                  <div className={`h-12 rounded ${t.previewCard} p-2 flex items-center justify-between text-[10px]`}>
-                    <span>Table View</span>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-500 text-white font-bold">Pill</span>
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTheme(t.id);
+                    }}
+                    className="mt-3 w-full py-2 rounded-lg text-xs font-bold transition-all"
+                    style={
+                      isSelected
+                        ? { backgroundColor: t.accentColor, color: t.accentText }
+                        : {
+                            backgroundColor: t.badgeBg,
+                            color: t.badgeText,
+                            border: `1px solid ${t.cardBorder}`,
+                          }
+                    }
+                  >
+                    {isSelected ? '✓ Currently Active' : 'Apply Theme'}
+                  </button>
                 </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTheme(t.id);
-                  }}
-                  className={`w-full py-2 rounded-lg text-xs font-bold transition-colors shadow-2xs ${
-                    isSelected
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white hover:bg-slate-200'
-                  }`}
-                >
-                  {isSelected ? '✓ Currently Active' : 'Apply Theme'}
-                </button>
               </div>
             );
           })}

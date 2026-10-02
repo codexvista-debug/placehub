@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type ThemeName = 'lime' | 'emerald' | 'navy';
+export type ThemeName = 'emerald' | 'navy' | 'rose';
 
 interface ThemeContextType {
   theme: ThemeName;
@@ -20,7 +20,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem('placerover_theme') as ThemeName;
-    if (saved && ['lime', 'emerald', 'navy'].includes(saved)) {
+    if (saved && ['emerald', 'navy', 'rose'].includes(saved)) {
       setThemeState(saved);
     }
     setMounted(true);
@@ -31,9 +31,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('placerover_theme', newTheme);
   };
 
+  const activeTheme = mounted ? theme : 'emerald';
+
   return (
-    <ThemeContext.Provider value={{ theme: mounted ? theme : 'emerald', setTheme }}>
-      <div data-theme={mounted ? theme : 'emerald'} className="min-h-screen">
+    <ThemeContext.Provider value={{ theme: activeTheme, setTheme }}>
+      <div
+        data-theme={activeTheme}
+        className="min-h-screen theme-bg theme-text-body"
+        style={{ minHeight: '100vh' }}
+      >
         {children}
       </div>
     </ThemeContext.Provider>

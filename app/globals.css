@@ -1,27 +1,192 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f0fdf4;
-  --foreground: #0f172a;
-}
+/* ============================================================
+   PlaceRover – Global Design Token System
+   All themes are driven by CSS custom properties on [data-theme]
+   ============================================================ */
 
+/* ---------- EMERALD (default) ----------
+   Aesthetic: Professional corporate green. Crisp white content
+   areas, deep emerald header, subtle mint background.
+*/
+[data-theme="emerald"],
 [data-theme="emerald"] body {
-  background-color: #f0fdf4 !important;
-  color: #0f172a;
+  --color-bg:           #f0fdf4;   /* mint-tinted page bg */
+  --color-surface:      #ffffff;   /* card / panel bg */
+  --color-surface-alt:  #ecfdf5;   /* subtle inner panel */
+  --color-border:       #a7f3d0;   /* emerald-200 */
+  --color-border-soft:  #d1fae5;   /* emerald-100 */
+  --color-text:         #064e3b;   /* emerald-900 */
+  --color-text-muted:   #047857;   /* emerald-700 */
+  --color-text-body:    #1e293b;   /* slate-800 */
+  --color-accent:       #059669;   /* emerald-600 */
+  --color-accent-hover: #047857;   /* emerald-700 */
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #d1fae5;
+  --color-badge-text:   #065f46;
+  --color-input-bg:     #ffffff;
+  --color-input-border: #a7f3d0;
+  --color-code-bg:      #d1fae5;
+  --color-header-bg:    #064e3b;   /* emerald-950 */
+  --color-header-border:#065f46;
+  --color-header-text:  #ffffff;
+  --color-header-logo-bg: #059669;
+  --color-header-active:#065f46;
+  --color-header-hover: #047857;
+  --color-table-head-bg:#064e3b;
+  --color-table-head-text:#ecfdf5;
+  --color-table-row-even:#f0fdf4;
+  --color-table-row-odd:#ffffff;
+  --color-table-row-hover:#dcfce7;
+  --color-table-border: #a7f3d0;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
 }
 
+/* ---------- NAVY (Midnight Navy) ----------
+   Aesthetic: Sleek full dark mode. Deep navy everything,
+   cyan/indigo neon accents, glowing highlights.
+*/
+[data-theme="navy"],
 [data-theme="navy"] body {
-  background-color: #0f172a !important;
-  color: #f8fafc;
+  --color-bg:           #0b1120;   /* near-black navy */
+  --color-surface:      #162032;   /* dark navy card */
+  --color-surface-alt:  #1e2d42;   /* slightly lighter panel */
+  --color-border:       #2d4a6b;   /* muted blue-grey */
+  --color-border-soft:  #1e3a52;
+  --color-text:         #e2e8f0;   /* slate-200 */
+  --color-text-muted:   #94a3b8;   /* slate-400 */
+  --color-text-body:    #cbd5e1;   /* slate-300 */
+  --color-accent:       #06b6d4;   /* cyan-500 */
+  --color-accent-hover: #0891b2;   /* cyan-600 */
+  --color-accent-text:  #000000;
+  --color-badge-bg:     #083344;
+  --color-badge-text:   #67e8f9;   /* cyan-300 */
+  --color-input-bg:     #0f1e30;
+  --color-input-border: #2d4a6b;
+  --color-code-bg:      #1e2d42;
+  --color-header-bg:    #060d1a;   /* deepest navy */
+  --color-header-border:#1e3a52;
+  --color-header-text:  #e2e8f0;
+  --color-header-logo-bg: #06b6d4;
+  --color-header-active:#083344;
+  --color-header-hover: #162032;
+  --color-table-head-bg:#060d1a;
+  --color-table-head-text:#67e8f9;
+  --color-table-row-even:#0b1120;
+  --color-table-row-odd:#0f1829;
+  --color-table-row-hover:#162032;
+  --color-table-border: #2d4a6b;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
 }
 
-[data-theme="lime"] body {
-  background-color: #f7fee7 !important;
-  color: #0f172a;
+/* ---------- ROSE (Warm Rose) ----------
+   Aesthetic: Warm, modern rose-pink theme. Blush backgrounds,
+   deep rose headers, vibrant pink accents.
+*/
+[data-theme="rose"],
+[data-theme="rose"] body {
+  --color-bg:           #fff1f2;   /* rose-50 */
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #ffe4e6;   /* rose-100 */
+  --color-border:       #fda4af;   /* rose-300 */
+  --color-border-soft:  #ffe4e6;
+  --color-text:         #881337;   /* rose-900 */
+  --color-text-muted:   #be123c;   /* rose-700 */
+  --color-text-body:    #1e293b;
+  --color-accent:       #e11d48;   /* rose-600 */
+  --color-accent-hover: #be123c;   /* rose-700 */
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #ffe4e6;
+  --color-badge-text:   #9f1239;
+  --color-input-bg:     #ffffff;
+  --color-input-border: #fda4af;
+  --color-code-bg:      #ffe4e6;
+  --color-header-bg:    #881337;   /* rose-900 */
+  --color-header-border:#9f1239;
+  --color-header-text:  #ffffff;
+  --color-header-logo-bg: #e11d48;
+  --color-header-active:#9f1239;
+  --color-header-hover: #be123c;
+  --color-table-head-bg:#881337;
+  --color-table-head-text:#ffe4e6;
+  --color-table-row-even:#fff1f2;
+  --color-table-row-odd:#ffffff;
+  --color-table-row-hover:#fecdd3;
+  --color-table-border: #fda4af;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
 }
 
+/* ============================================================
+   Base body styles
+   ============================================================ */
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   min-height: 100vh;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Smooth transitions for themed elements */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
+}
+
+/* ============================================================
+   Utility classes powered by CSS tokens
+   These allow all pages to use theme-agnostic class names
+   ============================================================ */
+
+/* Page / layout */
+.theme-bg          { background-color: var(--color-bg); }
+.theme-surface     { background-color: var(--color-surface); color: var(--color-text-body); }
+.theme-surface-alt { background-color: var(--color-surface-alt); }
+.theme-border      { border-color: var(--color-border); }
+.theme-border-soft { border-color: var(--color-border-soft); }
+
+/* Typography */
+.theme-text        { color: var(--color-text); }
+.theme-text-muted  { color: var(--color-text-muted); }
+.theme-text-body   { color: var(--color-text-body); }
+
+/* Accent buttons / badges */
+.theme-btn {
+  background-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+.theme-btn:hover {
+  background-color: var(--color-accent-hover);
+}
+.theme-badge {
+  background-color: var(--color-badge-bg);
+  color: var(--color-badge-text);
+}
+
+/* Inputs */
+.theme-input {
+  background-color: var(--color-input-bg);
+  border-color: var(--color-input-border);
+  color: var(--color-text-body);
+}
+.theme-input:focus {
+  outline: none;
+  ring-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* Inline code */
+.theme-code {
+  background-color: var(--color-code-bg);
+  color: var(--color-text-muted);
+}
+
+/* Table */
+.theme-table-head {
+  background-color: var(--color-table-head-bg);
+  color: var(--color-table-head-text);
+}
+.theme-table-row-even  { background-color: var(--color-table-row-even); }
+.theme-table-row-odd   { background-color: var(--color-table-row-odd); }
+.theme-table-row-hover:hover { background-color: var(--color-table-row-hover); }
+.theme-table-border    { border-color: var(--color-table-border); }

@@ -3,11 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTheme } from '../context/ThemeContext';
 
 export default function Header() {
   const pathname = usePathname();
-  const { theme } = useTheme();
 
   const navItems = [
     {
@@ -40,40 +38,39 @@ export default function Header() {
     },
   ];
 
-  // Theme-aware Header Colors
-  let headerBg = 'bg-emerald-950 border-emerald-800 text-white';
-  let logoBg = 'bg-emerald-500 text-emerald-950';
-  let activeBtnBg = 'bg-emerald-700 text-white';
-  let hoverBtnBg = 'hover:bg-emerald-800 text-emerald-100';
-
-  if (theme === 'navy') {
-    headerBg = 'bg-slate-950 border-slate-800 text-white';
-    logoBg = 'bg-indigo-500 text-white';
-    activeBtnBg = 'bg-indigo-600 text-white';
-    hoverBtnBg = 'hover:bg-slate-800 text-slate-200';
-  } else if (theme === 'lime') {
-    headerBg = 'bg-lime-900 border-lime-800 text-white';
-    logoBg = 'bg-lime-500 text-lime-950';
-    activeBtnBg = 'bg-lime-600 text-white';
-    hoverBtnBg = 'hover:bg-lime-800 text-lime-100';
-  }
-
   return (
-    <header className={`${headerBg} shadow-md border-b sticky top-0 z-40 transition-colors duration-300`}>
+    <header
+      className="sticky top-0 z-40 shadow-md border-b transition-colors duration-300"
+      style={{
+        backgroundColor: 'var(--color-header-bg)',
+        borderColor: 'var(--color-header-border)',
+        color: 'var(--color-header-text)',
+      }}
+    >
       <div className="max-w-full mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14">
-          
+
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg ${logoBg} font-black text-lg flex items-center justify-center shadow-xs transition-colors`}>
+            <div
+              className="w-8 h-8 rounded-lg font-black text-sm flex items-center justify-center shadow-sm transition-colors"
+              style={{
+                backgroundColor: 'var(--color-header-logo-bg)',
+                color: 'var(--color-header-bg)',
+              }}
+            >
               P
             </div>
-            <Link href="/" className="text-lg font-bold tracking-tight hover:opacity-90 transition-opacity">
+            <Link
+              href="/"
+              className="text-lg font-bold tracking-tight hover:opacity-90 transition-opacity"
+              style={{ color: 'var(--color-header-text)' }}
+            >
               PlaceRover
             </Link>
           </div>
 
-          {/* Navigation Items + Theme Icon */}
+          {/* Navigation */}
           <nav className="flex items-center gap-1 sm:gap-2">
             {navItems.map((item) => {
               const isActive = pathname === item.path;
@@ -81,9 +78,24 @@ export default function Header() {
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all ${
-                    isActive ? activeBtnBg : hoverBtnBg
-                  }`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all"
+                  style={{
+                    backgroundColor: isActive ? 'var(--color-header-active)' : 'transparent',
+                    color: 'var(--color-header-text)',
+                    opacity: isActive ? 1 : 0.85,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-header-hover)';
+                      (e.currentTarget as HTMLElement).style.opacity = '1';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                      (e.currentTarget as HTMLElement).style.opacity = '0.85';
+                    }
+                  }}
                 >
                   {item.icon}
                   <span>{item.name}</span>
@@ -91,13 +103,28 @@ export default function Header() {
               );
             })}
 
-            {/* Themes Icon (No text label, just icon) */}
+            {/* Theme icon — no text label */}
             <Link
               href="/themes"
               title="Change Theme"
-              className={`p-2 rounded-md transition-all ${
-                pathname === '/themes' ? activeBtnBg : hoverBtnBg
-              }`}
+              className="p-2 rounded-md transition-all"
+              style={{
+                backgroundColor: pathname === '/themes' ? 'var(--color-header-active)' : 'transparent',
+                color: 'var(--color-header-text)',
+                opacity: pathname === '/themes' ? 1 : 0.85,
+              }}
+              onMouseEnter={(e) => {
+                if (pathname !== '/themes') {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-header-hover)';
+                  (e.currentTarget as HTMLElement).style.opacity = '1';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (pathname !== '/themes') {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                  (e.currentTarget as HTMLElement).style.opacity = '0.85';
+                }
+              }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
