@@ -54,12 +54,13 @@ export default function TableClient({
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 50;
 
-  // Active column popover menu: header string | null
+  // Active column popover menu
   const [activePopover, setActivePopover] = useState<string | null>(null);
 
   // Tracking updates from Notion for visual acknowledgment
   const [newRowIds, setNewRowIds] = useState<Set<string>>(new Set());
   const [updatedCellKeys, setUpdatedCellKeys] = useState<Set<string>>(new Set());
+  const [showOnlyUpdated, setShowOnlyUpdated] = useState(false);
   const initialLoadRef = useRef(false);
 
   // Sync health state: 'ok' | 'failed'
@@ -88,7 +89,6 @@ export default function TableClient({
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
-      // If clicked inside popover container or toggle button, do NOT close!
       if (
         target.closest('[data-popover="true"]') ||
         target.closest('[data-popover-toggle="true"]')
@@ -188,6 +188,15 @@ export default function TableClient({
   const filteredAndSortedData = useMemo(() => {
     let result = [...data];
 
+    // If toggle 'showOnlyUpdated' is active, filter to rows that have new additions or cell changes
+    if (showOnlyUpdated) {
+      result = result.filter(
+        (row) =>
+          newRowIds.has(row.id) ||
+          columnHeaders.some((col) => updatedCellKeys.has(`${row.id}-${col}`))
+      );
+    }
+
     columnHeaders.forEach((header) => {
       const search = columnSearch[header]?.toLowerCase();
       if (search) {
@@ -214,11 +223,21 @@ export default function TableClient({
     }
 
     return result;
-  }, [data, columnHeaders, columnSearch, columnSelectedValues, sortColumn, sortDirection]);
+  }, [
+    data,
+    showOnlyUpdated,
+    newRowIds,
+    updatedCellKeys,
+    columnHeaders,
+    columnSearch,
+    columnSelectedValues,
+    sortColumn,
+    sortDirection,
+  ]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [columnSearch, columnSelectedValues, sortColumn, sortDirection]);
+  }, [showOnlyUpdated, columnSearch, columnSelectedValues, sortColumn, sortDirection]);
 
   const totalPages = Math.ceil(filteredAndSortedData.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
@@ -318,6 +337,38 @@ export default function TableClient({
   const acknowledgeAllUpdates = () => {
     setNewRowIds(new Set());
     setUpdatedCellKeys(new Set());
+    setShowOnlyUpdated(false);
+  };
+
+  // Jump to first updated element with smooth scrolling
+  const jumpToFirstUpdate = () => {
+    if (showOnlyUpdated) {
+      document.querySelector('[data-updated="true"]')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center',
+      });
+      return;
+    }
+
+    // Find index of first updated row in current filtered dataset
+    const targetIndex = filteredAndSortedData.findIndex(
+      (row) =>
+        newRowIds.has(row.id) ||
+        columnHeaders.some((col) => updatedCellKeys.has(`${row.id}-${col}`))
+    );
+
+    if (targetIndex !== -1) {
+      const targetPage = Math.floor(targetIndex / rowsPerPage) + 1;
+      setCurrentPage(targetPage);
+
+      setTimeout(() => {
+        const el = document.querySelector('[data-updated="true"]');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+      }, 150);
+    }
   };
 
   // Compact Inline Pagination Bar
@@ -328,6 +379,11 @@ export default function TableClient({
           Showing <strong className="text-slate-900">{filteredAndSortedData.length === 0 ? 0 : startIndex + 1}</strong>-
           <strong className="text-slate-900">{Math.min(startIndex + rowsPerPage, filteredAndSortedData.length)}</strong> of{' '}
           <strong className="text-slate-900">{filteredAndSortedData.length}</strong> rows
+          {showOnlyUpdated && (
+            <span className="ml-1.5 text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded text-[11px] font-bold">
+              (Filtered to updates only)
+            </span>
+          )}
         </span>
 
         {/* Dynamic Real-time Sync Status indicator */}
@@ -366,16 +422,17 @@ export default function TableClient({
     </div>
   );
 
-  const hasUnacknowledgedUpdates = newRowIds.size > 0 || updatedCellKeys.size > 0;
+  const totalUpdatesCount = newRowIds.size + updatedCellKeys.size;
+  const hasUnacknowledgedUpdates = totalUpdatesCount > 0;
 
   return (
     <div className="flex flex-col gap-2 w-full">
       
-      {/* ACKNOWLEDGE BANNER FOR NOTION UPDATES */}
+      {/* ACKNOWLEDGE & DIRECT JUMP BANNER FOR NOTION UPDATES */}
       {hasUnacknowledgedUpdates && (
-        <div className="flex items-center justify-between bg-amber-50 border border-amber-300 text-amber-950 px-3.5 py-2.5 rounded-lg text-xs shadow-sm transition-all animate-pulse">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50 border-2 border-amber-400 text-amber-950 px-3.5 py-2.5 rounded-lg text-xs shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="text-base">🔔</span>
+            <span className="text-base animate-bounce">🔔</span>
             <span>
               <strong className="text-amber-900 font-bold">New updates from Notion:</strong>{' '}
               {newRowIds.size > 0 && (
@@ -384,20 +441,43 @@ export default function TableClient({
                 </span>
               )}
               {updatedCellKeys.size > 0 && (
-                <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">
+                <span className="bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-bold">
                   {updatedCellKeys.size} Cell Update{updatedCellKeys.size > 1 ? 's' : ''}
                 </span>
               )}
-              {' '}highlighted on your table.
+              {' '}detected.
             </span>
           </div>
 
-          <button
-            onClick={acknowledgeAllUpdates}
-            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-md shadow-xs transition-colors cursor-pointer text-xs"
-          >
-            ✓ Acknowledge All Updates
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Direct Jump Button */}
+            <button
+              onClick={jumpToFirstUpdate}
+              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded shadow-xs transition-colors cursor-pointer text-xs flex items-center gap-1"
+            >
+              <span>⚡ Jump Directly to Updates</span>
+            </button>
+
+            {/* Filter to Updates Only Toggle */}
+            <button
+              onClick={() => setShowOnlyUpdated((prev) => !prev)}
+              className={`px-2.5 py-1 rounded font-bold transition-colors cursor-pointer text-xs border ${
+                showOnlyUpdated
+                  ? 'bg-amber-800 text-white border-amber-900'
+                  : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-100'
+              }`}
+            >
+              {showOnlyUpdated ? '👁️ Show All Rows' : `🔍 View Updates Only (${totalUpdatesCount})`}
+            </button>
+
+            {/* Acknowledge All */}
+            <button
+              onClick={acknowledgeAllUpdates}
+              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow-xs transition-colors cursor-pointer text-xs"
+            >
+              ✓ Acknowledge All
+            </button>
+          </div>
         </div>
       )}
 
@@ -547,6 +627,7 @@ export default function TableClient({
                 return (
                   <tr
                     key={row.id}
+                    data-updated={isNewRow ? 'true' : undefined}
                     className={`transition-colors ${
                       isNewRow
                         ? 'bg-emerald-50/90 ring-1 ring-emerald-300'
@@ -564,6 +645,7 @@ export default function TableClient({
                       return (
                         <td
                           key={header}
+                          data-updated={isUpdatedCell ? 'true' : undefined}
                           onClick={() => {
                             if (!isEditing) startEditing(row.id, header, val);
                             if (isUpdatedCell) {
@@ -582,7 +664,7 @@ export default function TableClient({
                             }
                           }}
                           className={`px-2.5 py-2 border-r border-lime-200 last:border-r-0 text-slate-800 whitespace-normal break-words max-w-[170px] min-w-[110px] relative cursor-pointer group transition-colors leading-snug align-top ${
-                            isUpdatedCell ? 'bg-amber-100/80 ring-2 ring-amber-400' : 'hover:bg-lime-100/40'
+                            isUpdatedCell ? 'bg-amber-100/90 ring-2 ring-amber-400' : 'hover:bg-lime-100/40'
                           }`}
                           title="Click to edit or acknowledge"
                         >
@@ -610,7 +692,7 @@ export default function TableClient({
 
                               {/* Updated Cell indicator */}
                               {isUpdatedCell && (
-                                <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.2 rounded font-bold shadow-2xs">
+                                <span className="bg-amber-600 text-white text-[9px] px-1.5 py-0.2 rounded font-bold shadow-2xs">
                                   ⚡ Updated
                                 </span>
                               )}
