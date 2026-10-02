@@ -374,7 +374,7 @@ export default function TableClient({
   // Compact Inline Pagination Bar
   const renderPaginationBar = (isBottom = false) => (
     <div className={`flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-lime-900 font-medium ${isBottom ? 'pt-2' : 'pb-2 border-b border-lime-100'}`}>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <span className="text-slate-600">
           Showing <strong className="text-slate-900">{filteredAndSortedData.length === 0 ? 0 : startIndex + 1}</strong>-
           <strong className="text-slate-900">{Math.min(startIndex + rowsPerPage, filteredAndSortedData.length)}</strong> of{' '}
@@ -385,17 +385,6 @@ export default function TableClient({
             </span>
           )}
         </span>
-
-        {/* Dynamic Real-time Sync Status indicator */}
-        {syncStatus === 'failed' ? (
-          <span className="flex items-center gap-1 text-[11px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full border border-red-200">
-            🔴 Sync Failed (Check Notion Connection)
-          </span>
-        ) : (
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
-            🟢 Real-time Notion Connection OK
-          </span>
-        )}
       </div>
 
       <div className="flex items-center gap-1.5">
