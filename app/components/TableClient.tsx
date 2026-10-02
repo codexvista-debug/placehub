@@ -54,8 +54,11 @@ export default function TableClient({
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 50;
 
-  // Active column popover menu
+  // Active column popover menu: header string | null
   const [activePopover, setActivePopover] = useState<string | null>(null);
+
+  // Global search query
+  const [globalSearch, setGlobalSearch] = useState('');
 
   // Tracking updates from Notion for visual acknowledgment
   const [newRowIds, setNewRowIds] = useState<Set<string>>(new Set());
@@ -63,7 +66,7 @@ export default function TableClient({
   const [showOnlyUpdated, setShowOnlyUpdated] = useState(false);
   const initialLoadRef = useRef(false);
 
-  // Sync health state: 'ok' | 'failed'
+  // Sync health state
   const [syncStatus, setSyncStatus] = useState<'ok' | 'failed'>('ok');
 
   // Column-specific search text
@@ -81,7 +84,7 @@ export default function TableClient({
   const [editValue, setEditValue] = useState('');
   const [savingStatus, setSavingStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
 
-  // BULLETPROOF Popover Close on Outside Click using mousedown & closest()
+  // BULLETPROOF Popover Close on Outside Click
   useEffect(() => {
     if (!activePopover) return;
 
@@ -103,7 +106,7 @@ export default function TableClient({
     return () => document.removeEventListener('mousedown', handleDocumentMouseDown);
   }, [activePopover]);
 
-  // Real-time Silent Polling with Change Detection for Visual Highlights
+  // Real-time Silent Polling
   useEffect(() => {
     initialLoadRef.current = true;
 
@@ -188,7 +191,14 @@ export default function TableClient({
   const filteredAndSortedData = useMemo(() => {
     let result = [...data];
 
-    // If toggle 'showOnlyUpdated' is active, filter to rows that have new additions or cell changes
+    // Global search across all columns
+    if (globalSearch.trim()) {
+      const query = globalSearch.toLowerCase();
+      result = result.filter((row) =>
+        Object.values(row).some((val) => String(val).toLowerCase().includes(query))
+      );
+    }
+
     if (showOnlyUpdated) {
       result = result.filter(
         (row) =>
@@ -225,6 +235,7 @@ export default function TableClient({
     return result;
   }, [
     data,
+    globalSearch,
     showOnlyUpdated,
     newRowIds,
     updatedCellKeys,
@@ -237,7 +248,7 @@ export default function TableClient({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [showOnlyUpdated, columnSearch, columnSelectedValues, sortColumn, sortDirection]);
+  }, [globalSearch, showOnlyUpdated, columnSearch, columnSelectedValues, sortColumn, sortDirection]);
 
   const totalPages = Math.ceil(filteredAndSortedData.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
@@ -340,7 +351,6 @@ export default function TableClient({
     setShowOnlyUpdated(false);
   };
 
-  // Jump to first updated element with smooth scrolling
   const jumpToFirstUpdate = () => {
     if (showOnlyUpdated) {
       document.querySelector('[data-updated="true"]')?.scrollIntoView({
@@ -351,7 +361,6 @@ export default function TableClient({
       return;
     }
 
-    // Find index of first updated row in current filtered dataset
     const targetIndex = filteredAndSortedData.findIndex(
       (row) =>
         newRowIds.has(row.id) ||
@@ -371,11 +380,11 @@ export default function TableClient({
     }
   };
 
-  // Compact Inline Pagination Bar
+  // Compact Inline Toolbar with Search Bar
   const renderPaginationBar = (isBottom = false) => (
-    <div className={`flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-lime-900 font-medium ${isBottom ? 'pt-2' : 'pb-2 border-b border-lime-100'}`}>
-      <div className="flex items-center gap-2">
-        <span className="text-slate-600">
+    <div className={`flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-lime-900 font-medium ${isBottom ? 'pt-2' : 'pb-2 border-b border-lime-100'}`}>
+      <div className="flex items-center gap-3 flex-wrap flex-1">
+        <span className="text-slate-600 whitespace-nowrap">
           Showing <strong className="text-slate-900">{filteredAndSortedData.length === 0 ? 0 : startIndex + 1}</strong>-
           <strong className="text-slate-900">{Math.min(startIndex + rowsPerPage, filteredAndSortedData.length)}</strong> of{' '}
           <strong className="text-slate-900">{filteredAndSortedData.length}</strong> rows
@@ -385,9 +394,30 @@ export default function TableClient({
             </span>
           )}
         </span>
+
+        {/* Global Search Input Box (only shown on top toolbar) */}
+        {!isBottom && (
+          <div className="relative flex-1 max-w-xs min-w-[200px]">
+            <input
+              type="text"
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              placeholder="🔍 Search all columns..."
+              className="w-full px-3 py-1 border border-lime-300 rounded-md text-xs bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-lime-500 shadow-2xs"
+            />
+            {globalSearch && (
+              <button
+                onClick={() => setGlobalSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 shrink-0">
         <button
           onClick={handlePrev}
           disabled={currentPage === 1}
@@ -417,7 +447,7 @@ export default function TableClient({
   return (
     <div className="flex flex-col gap-2 w-full">
       
-      {/* ACKNOWLEDGE & DIRECT JUMP BANNER FOR NOTION UPDATES */}
+      {/* ACKNOWLEDGE & DIRECT JUMP BANNER */}
       {hasUnacknowledgedUpdates && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50 border-2 border-amber-400 text-amber-950 px-3.5 py-2.5 rounded-lg text-xs shadow-sm">
           <div className="flex items-center gap-2">
@@ -439,7 +469,6 @@ export default function TableClient({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Direct Jump Button */}
             <button
               onClick={jumpToFirstUpdate}
               className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded shadow-xs transition-colors cursor-pointer text-xs flex items-center gap-1"
@@ -447,7 +476,6 @@ export default function TableClient({
               <span>⚡ Jump Directly to Updates</span>
             </button>
 
-            {/* Filter to Updates Only Toggle */}
             <button
               onClick={() => setShowOnlyUpdated((prev) => !prev)}
               className={`px-2.5 py-1 rounded font-bold transition-colors cursor-pointer text-xs border ${
@@ -459,7 +487,6 @@ export default function TableClient({
               {showOnlyUpdated ? '👁️ Show All Rows' : `🔍 View Updates Only (${totalUpdatesCount})`}
             </button>
 
-            {/* Acknowledge All */}
             <button
               onClick={acknowledgeAllUpdates}
               className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow-xs transition-colors cursor-pointer text-xs"
@@ -470,7 +497,7 @@ export default function TableClient({
         </div>
       )}
 
-      {/* TOP PAGINATION BAR */}
+      {/* TOP PAGINATION & SEARCH BAR */}
       {renderPaginationBar(false)}
 
       {/* Table Container with Horizontal Scroll */}
@@ -491,7 +518,6 @@ export default function TableClient({
                     <div className="flex items-center justify-between gap-1">
                       <span className="leading-snug">{header}</span>
 
-                      {/* Header Filter/Sort Trigger Button with data-popover-toggle */}
                       <button
                         type="button"
                         data-popover-toggle="true"
@@ -507,13 +533,11 @@ export default function TableClient({
                       </button>
                     </div>
 
-                    {/* Dynamic Column Popover Menu with data-popover="true" */}
                     {isPopoverOpen && (
                       <div
                         data-popover="true"
                         className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-2xl border-2 border-lime-400 p-3 z-50 text-slate-800 text-xs font-normal normal-case"
                       >
-                        {/* Sort Actions */}
                         <div className="flex flex-col gap-1 pb-2 border-b border-lime-100">
                           <span className="font-bold text-lime-900 mb-1">Sort Column</span>
                           <button
@@ -544,7 +568,6 @@ export default function TableClient({
                           </button>
                         </div>
 
-                        {/* Search Filter */}
                         <div className="py-2 border-b border-lime-100 flex flex-col gap-1">
                           <span className="font-bold text-lime-900 mb-1">Search {header}</span>
                           <input
@@ -558,7 +581,6 @@ export default function TableClient({
                           />
                         </div>
 
-                        {/* Value Checklist Filter */}
                         {options.length > 0 && (
                           <div className="py-2 flex flex-col gap-1 max-h-44 overflow-y-auto">
                             <span className="font-bold text-lime-900 mb-1">Filter Values ({options.length})</span>
@@ -582,7 +604,6 @@ export default function TableClient({
                           </div>
                         )}
 
-                        {/* Clear Filter Footer */}
                         {isFiltered && (
                           <button
                             type="button"
@@ -606,7 +627,7 @@ export default function TableClient({
             {currentRows.length === 0 ? (
               <tr>
                 <td colSpan={columnHeaders.length} className="px-4 py-8 text-center text-slate-500 font-medium">
-                  No placements match your column filter criteria.
+                  No placements match your search or filter criteria.
                 </td>
               </tr>
             ) : (
@@ -672,14 +693,12 @@ export default function TableClient({
                             />
                           ) : (
                             <div className="flex flex-col gap-1 items-start justify-between min-h-[24px]">
-                              {/* New Row indicator on first column */}
                               {colIndex === 0 && isNewRow && (
                                 <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wide shadow-2xs">
                                   ✨ New Row
                                 </span>
                               )}
 
-                              {/* Updated Cell indicator */}
                               {isUpdatedCell && (
                                 <span className="bg-amber-600 text-white text-[9px] px-1.5 py-0.2 rounded font-bold shadow-2xs">
                                   ⚡ Updated

@@ -43,7 +43,7 @@ export default function Header() {
       <div className="max-w-full mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14">
           
-          {/* Logo & Page Context Badge */}
+          {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-lime-500 text-lime-950 font-black text-lg flex items-center justify-center shadow-xs">
               P
@@ -51,14 +51,6 @@ export default function Header() {
             <Link href="/" className="text-lg font-bold tracking-tight hover:text-lime-200 transition-colors">
               PlaceRover
             </Link>
-
-            {/* Subtle, Professional Real-Time Status Badge on Table View */}
-            {pathname === '/' && (
-              <span className="hidden sm:flex items-center gap-1.5 bg-lime-950/50 text-lime-200 text-[11px] px-2.5 py-0.5 rounded-full border border-lime-700/60 font-medium tracking-wide">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Live Sync
-              </span>
-            )}
           </div>
 
           {/* Navigation Items */}
