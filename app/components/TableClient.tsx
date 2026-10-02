@@ -54,9 +54,13 @@ export default function TableClient({
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 50;
 
-  // Active column popover menu
+  // Active column popover menu: header string | null
   const [activePopover, setActivePopover] = useState<string | null>(null);
-  const popoverRef = useRef<HTMLDivElement | null>(null);
+
+  // Tracking updates from Notion for visual acknowledgment
+  const [newRowIds, setNewRowIds] = useState<Set<string>>(new Set());
+  const [updatedCellKeys, setUpdatedCellKeys] = useState<Set<string>>(new Set());
+  const initialLoadRef = useRef(false);
 
   // Sync health state: 'ok' | 'failed'
   const [syncStatus, setSyncStatus] = useState<'ok' | 'failed'>('ok');
@@ -76,31 +80,82 @@ export default function TableClient({
   const [editValue, setEditValue] = useState('');
   const [savingStatus, setSavingStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
 
-  // Close popover when clicking anywhere outside
+  // BULLETPROOF Popover Close on Outside Click using mousedown & closest()
   useEffect(() => {
     if (!activePopover) return;
 
-    const handleDocumentClick = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setActivePopover(null);
+    const handleDocumentMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // If clicked inside popover container or toggle button, do NOT close!
+      if (
+        target.closest('[data-popover="true"]') ||
+        target.closest('[data-popover-toggle="true"]')
+      ) {
+        return;
       }
+
+      setActivePopover(null);
     };
 
-    document.addEventListener('click', handleDocumentClick);
-    return () => document.removeEventListener('click', handleDocumentClick);
+    document.addEventListener('mousedown', handleDocumentMouseDown);
+    return () => document.removeEventListener('mousedown', handleDocumentMouseDown);
   }, [activePopover]);
 
-  // Real-time Silent Polling
+  // Real-time Silent Polling with Change Detection for Visual Highlights
   useEffect(() => {
+    initialLoadRef.current = true;
+
     const interval = setInterval(async () => {
-      if (editingCell || activePopover) return;
+      if (editingCell) return;
 
       try {
         const res = await fetch('/api/fetch-placements');
         if (res.ok) {
           const json = await res.json();
           if (json.placements && Array.isArray(json.placements)) {
-            setData(json.placements);
+            const incoming: Record<string, string>[] = json.placements;
+
+            setData((prevData) => {
+              if (initialLoadRef.current && prevData.length > 0) {
+                const prevMap = new Map(prevData.map((r) => [r.id, r]));
+                const freshRowIds: string[] = [];
+                const freshChangedCells: string[] = [];
+
+                incoming.forEach((row) => {
+                  const existing = prevMap.get(row.id);
+                  if (!existing) {
+                    freshRowIds.push(row.id);
+                  } else {
+                    columnHeaders.forEach((col) => {
+                      if (existing[col] !== row[col]) {
+                        freshChangedCells.push(`${row.id}-${col}`);
+                      }
+                    });
+                  }
+                });
+
+                if (freshRowIds.length > 0) {
+                  setNewRowIds((prev) => {
+                    const next = new Set(prev);
+                    freshRowIds.forEach((id) => next.add(id));
+                    return next;
+                  });
+                }
+
+                if (freshChangedCells.length > 0) {
+                  setUpdatedCellKeys((prev) => {
+                    const next = new Set(prev);
+                    freshChangedCells.forEach((k) => next.add(k));
+                    return next;
+                  });
+                }
+              }
+
+              return incoming;
+            });
+
             setSyncStatus('ok');
           }
         } else {
@@ -113,7 +168,7 @@ export default function TableClient({
     }, 6000);
 
     return () => clearInterval(interval);
-  }, [editingCell, activePopover]);
+  }, [editingCell, columnHeaders]);
 
   // Unique options for each column
   const columnUniqueOptions = useMemo(() => {
@@ -260,6 +315,11 @@ export default function TableClient({
     );
   };
 
+  const acknowledgeAllUpdates = () => {
+    setNewRowIds(new Set());
+    setUpdatedCellKeys(new Set());
+  };
+
   // Compact Inline Pagination Bar
   const renderPaginationBar = (isBottom = false) => (
     <div className={`flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-lime-900 font-medium ${isBottom ? 'pt-2' : 'pb-2 border-b border-lime-100'}`}>
@@ -286,7 +346,7 @@ export default function TableClient({
         <button
           onClick={handlePrev}
           disabled={currentPage === 1}
-          className="px-2.5 py-1 rounded border border-lime-300 bg-white text-lime-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-lime-100 transition-colors text-xs font-semibold shadow-2xs"
+          className="px-2.5 py-1 rounded border border-lime-300 bg-white text-lime-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-lime-100 transition-colors text-xs font-semibold shadow-2xs cursor-pointer"
         >
           ← Prev
         </button>
@@ -298,7 +358,7 @@ export default function TableClient({
         <button
           onClick={handleNext}
           disabled={currentPage === totalPages || totalPages === 0}
-          className="px-2.5 py-1 rounded border border-lime-300 bg-white text-lime-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-lime-100 transition-colors text-xs font-semibold shadow-2xs"
+          className="px-2.5 py-1 rounded border border-lime-300 bg-white text-lime-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-lime-100 transition-colors text-xs font-semibold shadow-2xs cursor-pointer"
         >
           Next →
         </button>
@@ -306,9 +366,41 @@ export default function TableClient({
     </div>
   );
 
+  const hasUnacknowledgedUpdates = newRowIds.size > 0 || updatedCellKeys.size > 0;
+
   return (
     <div className="flex flex-col gap-2 w-full">
       
+      {/* ACKNOWLEDGE BANNER FOR NOTION UPDATES */}
+      {hasUnacknowledgedUpdates && (
+        <div className="flex items-center justify-between bg-amber-50 border border-amber-300 text-amber-950 px-3.5 py-2.5 rounded-lg text-xs shadow-sm transition-all animate-pulse">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🔔</span>
+            <span>
+              <strong className="text-amber-900 font-bold">New updates from Notion:</strong>{' '}
+              {newRowIds.size > 0 && (
+                <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold mr-1">
+                  +{newRowIds.size} New Row{newRowIds.size > 1 ? 's' : ''}
+                </span>
+              )}
+              {updatedCellKeys.size > 0 && (
+                <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">
+                  {updatedCellKeys.size} Cell Update{updatedCellKeys.size > 1 ? 's' : ''}
+                </span>
+              )}
+              {' '}highlighted on your table.
+            </span>
+          </div>
+
+          <button
+            onClick={acknowledgeAllUpdates}
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-md shadow-xs transition-colors cursor-pointer text-xs"
+          >
+            ✓ Acknowledge All Updates
+          </button>
+        </div>
+      )}
+
       {/* TOP PAGINATION BAR */}
       {renderPaginationBar(false)}
 
@@ -330,12 +422,12 @@ export default function TableClient({
                     <div className="flex items-center justify-between gap-1">
                       <span className="leading-snug">{header}</span>
 
-                      {/* Header Filter/Sort Trigger Button */}
+                      {/* Header Filter/Sort Trigger Button with data-popover-toggle */}
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActivePopover(isPopoverOpen ? null : header);
+                        data-popover-toggle="true"
+                        onClick={() => {
+                          setActivePopover((prev) => (prev === header ? null : header));
                         }}
                         className={`p-0.5 px-1 rounded hover:bg-lime-200 transition-colors shrink-0 cursor-pointer ${
                           isFiltered ? 'text-lime-900 bg-lime-300 font-bold' : 'text-lime-700'
@@ -346,11 +438,10 @@ export default function TableClient({
                       </button>
                     </div>
 
-                    {/* Dynamic Column Popover Menu */}
+                    {/* Dynamic Column Popover Menu with data-popover="true" */}
                     {isPopoverOpen && (
                       <div
-                        ref={popoverRef}
-                        onClick={(e) => e.stopPropagation()}
+                        data-popover="true"
                         className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-2xl border-2 border-lime-400 p-3 z-50 text-slate-800 text-xs font-normal normal-case"
                       >
                         {/* Sort Actions */}
@@ -358,8 +449,7 @@ export default function TableClient({
                           <span className="font-bold text-lime-900 mb-1">Sort Column</span>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() => {
                               setSortColumn(header);
                               setSortDirection('asc');
                               setActivePopover(null);
@@ -372,8 +462,7 @@ export default function TableClient({
                           </button>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() => {
                               setSortColumn(header);
                               setSortDirection('desc');
                               setActivePopover(null);
@@ -396,7 +485,6 @@ export default function TableClient({
                             onChange={(e) =>
                               setColumnSearch({ ...columnSearch, [header]: e.target.value })
                             }
-                            onClick={(e) => e.stopPropagation()}
                             className="w-full p-1.5 border border-lime-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-lime-500 bg-lime-50/50 text-slate-900"
                           />
                         </div>
@@ -410,17 +498,13 @@ export default function TableClient({
                               return (
                                 <label
                                   key={opt}
-                                  onClick={(e) => e.stopPropagation()}
                                   className="flex items-center gap-2 p-1.5 hover:bg-lime-50 rounded cursor-pointer text-slate-800 text-xs select-none"
                                 >
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
-                                    onChange={(e) => {
-                                      e.stopPropagation();
-                                      toggleValueFilter(header, opt);
-                                    }}
-                                    className="accent-lime-600 rounded w-3.5 h-3.5"
+                                    onChange={() => toggleValueFilter(header, opt)}
+                                    className="accent-lime-600 rounded w-3.5 h-3.5 cursor-pointer"
                                   />
                                   <span className="truncate">{opt}</span>
                                 </label>
@@ -433,8 +517,7 @@ export default function TableClient({
                         {isFiltered && (
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() => {
                               clearColumnFilter(header);
                               setActivePopover(null);
                             }}
@@ -458,67 +541,111 @@ export default function TableClient({
                 </td>
               </tr>
             ) : (
-              currentRows.map((row) => (
-                <tr key={row.id} className="hover:bg-lime-50/70 transition-colors">
-                  {columnHeaders.map((header) => {
-                    const val = row[header] || '-';
-                    const isEditing = editingCell?.rowId === row.id && editingCell?.header === header;
-                    const cellKey = `${row.id}-${header}`;
-                    const status = savingStatus[cellKey];
-                    const bubbleStyle = getColumnBubbleStyle(header);
+              currentRows.map((row) => {
+                const isNewRow = newRowIds.has(row.id);
 
-                    return (
-                      <td
-                        key={header}
-                        onClick={() => !isEditing && startEditing(row.id, header, val)}
-                        className="px-2.5 py-2 border-r border-lime-200 last:border-r-0 text-slate-800 whitespace-normal break-words max-w-[170px] min-w-[110px] relative cursor-pointer group hover:bg-lime-100/40 transition-colors leading-snug align-top"
-                        title="Click to edit"
-                      >
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            autoFocus
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={() => saveCellEdit(row.id, header)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveCellEdit(row.id, header);
-                              if (e.key === 'Escape') setEditingCell(null);
-                            }}
-                            className="w-full p-1 border border-lime-500 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-lime-600"
-                          />
-                        ) : (
-                          <div className="flex flex-col gap-1 items-start justify-between min-h-[24px]">
-                            {val !== '-' ? (
-                              <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] border ${bubbleStyle} max-w-full break-words leading-tight`}>
-                                {val}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 italic text-[11px]">-</span>
-                            )}
+                return (
+                  <tr
+                    key={row.id}
+                    className={`transition-colors ${
+                      isNewRow
+                        ? 'bg-emerald-50/90 ring-1 ring-emerald-300'
+                        : 'hover:bg-lime-50/70'
+                    }`}
+                  >
+                    {columnHeaders.map((header, colIndex) => {
+                      const val = row[header] || '-';
+                      const isEditing = editingCell?.rowId === row.id && editingCell?.header === header;
+                      const cellKey = `${row.id}-${header}`;
+                      const isUpdatedCell = updatedCellKeys.has(cellKey);
+                      const status = savingStatus[cellKey];
+                      const bubbleStyle = getColumnBubbleStyle(header);
 
-                            {status === 'saving' && (
-                              <span className="text-[10px] text-amber-600 font-semibold animate-pulse">
-                                Syncing...
-                              </span>
-                            )}
-                            {status === 'saved' && (
-                              <span className="text-[10px] text-green-700 font-semibold">
-                                Saved ✓
-                              </span>
-                            )}
-                            {status === 'error' && (
-                              <span className="text-[10px] text-red-600 font-semibold">
-                                Error ✕
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))
+                      return (
+                        <td
+                          key={header}
+                          onClick={() => {
+                            if (!isEditing) startEditing(row.id, header, val);
+                            if (isUpdatedCell) {
+                              setUpdatedCellKeys((prev) => {
+                                const next = new Set(prev);
+                                next.delete(cellKey);
+                                return next;
+                              });
+                            }
+                            if (isNewRow) {
+                              setNewRowIds((prev) => {
+                                const next = new Set(prev);
+                                next.delete(row.id);
+                                return next;
+                              });
+                            }
+                          }}
+                          className={`px-2.5 py-2 border-r border-lime-200 last:border-r-0 text-slate-800 whitespace-normal break-words max-w-[170px] min-w-[110px] relative cursor-pointer group transition-colors leading-snug align-top ${
+                            isUpdatedCell ? 'bg-amber-100/80 ring-2 ring-amber-400' : 'hover:bg-lime-100/40'
+                          }`}
+                          title="Click to edit or acknowledge"
+                        >
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              autoFocus
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveCellEdit(row.id, header)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveCellEdit(row.id, header);
+                                if (e.key === 'Escape') setEditingCell(null);
+                              }}
+                              className="w-full p-1 border border-lime-500 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-lime-600"
+                            />
+                          ) : (
+                            <div className="flex flex-col gap-1 items-start justify-between min-h-[24px]">
+                              {/* New Row indicator on first column */}
+                              {colIndex === 0 && isNewRow && (
+                                <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wide shadow-2xs">
+                                  ✨ New Row
+                                </span>
+                              )}
+
+                              {/* Updated Cell indicator */}
+                              {isUpdatedCell && (
+                                <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.2 rounded font-bold shadow-2xs">
+                                  ⚡ Updated
+                                </span>
+                              )}
+
+                              {val !== '-' ? (
+                                <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] border ${bubbleStyle} max-w-full break-words leading-tight`}>
+                                  {val}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">-</span>
+                              )}
+
+                              {status === 'saving' && (
+                                <span className="text-[10px] text-amber-600 font-semibold animate-pulse">
+                                  Syncing...
+                                </span>
+                              )}
+                              {status === 'saved' && (
+                                <span className="text-[10px] text-green-700 font-semibold">
+                                  Saved ✓
+                                </span>
+                              )}
+                              {status === 'error' && (
+                                <span className="text-[10px] text-red-600 font-semibold">
+                                  Error ✕
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
