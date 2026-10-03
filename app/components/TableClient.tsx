@@ -29,6 +29,40 @@ function getColumnBubbleStyle(headerName: string) {
   return 'bg-slate-100 text-slate-700 border-slate-200 font-normal';
 }
 
+// Smart Chronological Date Parser for Live Table
+function parseDateToTimestamp(str: string): number {
+  if (!str || str === '-') return 0;
+  const clean = str.trim().replace(/,/g, ' ').replace(/\s+/g, ' ');
+  const time = Date.parse(clean);
+  if (!isNaN(time)) return time;
+
+  const months: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+  };
+
+  const mMatch = clean.match(/([a-zA-Z]{3,9})\s+(\d{1,2})\s+(\d{4})/i);
+  if (mMatch) {
+    const mStr = mMatch[1].toLowerCase().substring(0, 3);
+    const m = months[mStr];
+    const d = parseInt(mMatch[2], 10);
+    const y = parseInt(mMatch[3], 10);
+    if (m !== undefined && !isNaN(d) && !isNaN(y)) {
+      return new Date(y, m, d).getTime();
+    }
+  }
+
+  const slashMatch = clean.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (slashMatch) {
+    const m = parseInt(slashMatch[1], 10) - 1;
+    const d = parseInt(slashMatch[2], 10);
+    const y = parseInt(slashMatch[3], 10);
+    return new Date(y, m, d).getTime();
+  }
+
+  return 0;
+}
+
 export default function TableClient({
   placements,
   columnHeaders,
@@ -141,10 +175,24 @@ export default function TableClient({
       const sel = columnSelectedValues[header];
       if (sel && sel.length > 0) result = result.filter((row) => sel.includes(row[header]));
     });
+
     if (sortColumn) {
+      const isDateCol = sortColumn.toLowerCase().includes('date') || sortColumn.toLowerCase().includes('time');
+
       result.sort((a, b) => {
-        const va = (a[sortColumn] || '').toLowerCase();
-        const vb = (b[sortColumn] || '').toLowerCase();
+        const rawA = a[sortColumn] || '';
+        const rawB = b[sortColumn] || '';
+
+        if (isDateCol) {
+          const timeA = parseDateToTimestamp(rawA);
+          const timeB = parseDateToTimestamp(rawB);
+          if (timeA !== timeB) {
+            return sortDirection === 'asc' ? timeA - timeB : timeB - timeA;
+          }
+        }
+
+        const va = rawA.toLowerCase();
+        const vb = rawB.toLowerCase();
         if (va < vb) return sortDirection === 'asc' ? -1 : 1;
         if (va > vb) return sortDirection === 'asc' ? 1 : -1;
         return 0;
@@ -262,7 +310,7 @@ export default function TableClient({
             {globalSearch && (
               <button
                 onClick={() => setGlobalSearch('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 theme-text-muted hover:theme-text text-xs font-bold"
+                className="absolute right-2 top-1/2 -translate-y-1/2 theme-text-muted hover:theme-text text-xs font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -368,6 +416,11 @@ export default function TableClient({
             className="theme-table-head sticky top-0 z-30 border-b theme-table-border"
           >
             <tr>
+              {/* Row index # column */}
+              <th className="px-3 py-2 font-bold w-12 text-center border-r theme-table-border select-none">
+                #
+              </th>
+
               {columnHeaders.map((header) => {
                 const isFiltered = isColumnFilteredOrSorted(header);
                 const isPopoverOpen = activePopover === header;
@@ -499,7 +552,7 @@ export default function TableClient({
           <tbody>
             {currentRows.length === 0 ? (
               <tr>
-                <td colSpan={columnHeaders.length} className="px-4 py-8 text-center theme-text-muted font-medium">
+                <td colSpan={columnHeaders.length + 1} className="px-4 py-8 text-center theme-text-muted font-medium">
                   No placements match your search or filter criteria.
                 </td>
               </tr>
@@ -507,6 +560,7 @@ export default function TableClient({
               currentRows.map((row, rowIndex) => {
                 const isNewRow = newRowIds.has(row.id);
                 const isEven = rowIndex % 2 === 0;
+                const displayRowNumber = startIndex + rowIndex + 1;
 
                 return (
                   <tr
@@ -528,6 +582,13 @@ export default function TableClient({
                       if (!isNewRow) (e.currentTarget as HTMLElement).style.backgroundColor = isEven ? 'var(--color-table-row-even)' : 'var(--color-table-row-odd)';
                     }}
                   >
+                    {/* # Row Number column */}
+                    <td
+                      className="px-2.5 py-2 text-center font-mono font-bold text-[11px] border-r theme-table-border theme-text-muted"
+                    >
+                      {displayRowNumber}
+                    </td>
+
                     {columnHeaders.map((header, colIndex) => {
                       const val = row[header] || '-';
                       const isEditing = editingCell?.rowId === row.id && editingCell?.header === header;
