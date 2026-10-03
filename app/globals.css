@@ -120,6 +120,158 @@
   color: var(--color-text-body);
 }
 
+/* ---------- 4. GRAPHITE (Bloomberg / Data Terminal Inspired) ----------
+   Aesthetic: Premium financial data-grid aesthetic. Charcoal header,
+   ash-zinc canvas, clean off-white cards, sharp teal-green accents.
+*/
+[data-theme="graphite"],
+[data-theme="graphite"] body {
+  --color-bg:           #f4f4f5;
+  --color-surface:      #fafafa;
+  --color-surface-alt:  #e4e4e7;
+  --color-border:       #d4d4d8;
+  --color-border-soft:  #e4e4e7;
+  --color-text:         #18181b;
+  --color-text-muted:   #71717a;
+  --color-text-body:    #27272a;
+  --color-accent:       #0d9488;
+  --color-accent-hover: #0f766e;
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #ccfbf1;
+  --color-badge-text:   #0f4c47;
+  --color-input-bg:     #fafafa;
+  --color-input-border: #d4d4d8;
+  --color-code-bg:      #e4e4e7;
+  --color-header-bg:    #27272a;
+  --color-header-border:#3f3f46;
+  --color-header-text:  #f4f4f5;
+  --color-header-logo-bg: #0d9488;
+  --color-header-active:#3f3f46;
+  --color-header-hover: #52525b;
+  --color-table-head-bg:#18181b;
+  --color-table-head-text:#e4e4e7;
+  --color-table-row-even:#fafafa;
+  --color-table-row-odd:#f4f4f5;
+  --color-table-row-hover:#e4e4e7;
+  --color-table-border: #d4d4d8;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
+/* ---------- 5. FOREST (Consulting Report / McKinsey Inspired) ----------
+   Aesthetic: Grounded, premium consulting aesthetic. Deep forest-green header,
+   light sage-grey canvas, pure white cards, emerald accents.
+*/
+[data-theme="forest"],
+[data-theme="forest"] body {
+  --color-bg:           #f0faf4;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #e8f5ee;
+  --color-border:       #bbddc9;
+  --color-border-soft:  #d1e9da;
+  --color-text:         #0d2018;
+  --color-text-muted:   #4d7a5e;
+  --color-text-body:    #1a3828;
+  --color-accent:       #16a34a;
+  --color-accent-hover: #15803d;
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #dcfce7;
+  --color-badge-text:   #14532d;
+  --color-input-bg:     #ffffff;
+  --color-input-border: #bbddc9;
+  --color-code-bg:      #e8f5ee;
+  --color-header-bg:    #14532d;
+  --color-header-border:#166534;
+  --color-header-text:  #dcfce7;
+  --color-header-logo-bg: #16a34a;
+  --color-header-active:#166534;
+  --color-header-hover: #1a6b3a;
+  --color-table-head-bg:#0d2018;
+  --color-table-head-text:#d1e9da;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#f0faf4;
+  --color-table-row-hover:#e8f5ee;
+  --color-table-border: #bbddc9;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
+/* ---------- 6. ARCTIC (Figma / Scandinavian Precision Inspired) ----------
+   Aesthetic: Ice-cool, clinical precision. Icy navy header,
+   cool blue-grey canvas, sharp violet accents.
+*/
+[data-theme="arctic"],
+[data-theme="arctic"] body {
+  --color-bg:           #f0f4f8;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #e3eaf2;
+  --color-border:       #c9d7e4;
+  --color-border-soft:  #dce6ef;
+  --color-text:         #0c1a2b;
+  --color-text-muted:   #5b7594;
+  --color-text-body:    #1a2e42;
+  --color-accent:       #7c3aed;
+  --color-accent-hover: #6d28d9;
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #ede9fe;
+  --color-badge-text:   #4c1d95;
+  --color-input-bg:     #ffffff;
+  --color-input-border: #c9d7e4;
+  --color-code-bg:      #e3eaf2;
+  --color-header-bg:    #1e3a5f;
+  --color-header-border:#234876;
+  --color-header-text:  #e8f2fc;
+  --color-header-logo-bg: #7c3aed;
+  --color-header-active:#234876;
+  --color-header-hover: #2a5592;
+  --color-table-head-bg:#0c1a2b;
+  --color-table-head-text:#e3eaf2;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#f0f4f8;
+  --color-table-row-hover:#e3eaf2;
+  --color-table-border: #c9d7e4;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
+/* ---------- 7. SAND (Palantir / Analytical Intelligence Inspired) ----------
+   Aesthetic: Refined document-first analytical aesthetic. Warm linen header,
+   sand canvas, deep umber body text, burnt sienna accents.
+*/
+[data-theme="sand"],
+[data-theme="sand"] body {
+  --color-bg:           #faf8f4;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #f0ebe1;
+  --color-border:       #d9cfc0;
+  --color-border-soft:  #e8e0d4;
+  --color-text:         #2c1f14;
+  --color-text-muted:   #7c6651;
+  --color-text-body:    #3d2a1a;
+  --color-accent:       #c2410c;
+  --color-accent-hover: #9a3412;
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #fff7ed;
+  --color-badge-text:   #7c2d12;
+  --color-input-bg:     #ffffff;
+  --color-input-border: #d9cfc0;
+  --color-code-bg:      #f0ebe1;
+  --color-header-bg:    #f5f0e8;
+  --color-header-border:#d9cfc0;
+  --color-header-text:  #2c1f14;
+  --color-header-logo-bg: #c2410c;
+  --color-header-active:#e8dfd2;
+  --color-header-hover: #eee6d8;
+  --color-table-head-bg:#2c1f14;
+  --color-table-head-text:#faf8f4;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#faf8f4;
+  --color-table-row-hover:#f0ebe1;
+  --color-table-border: #d9cfc0;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
 /* ============================================================
    Base body styles
    ============================================================ */

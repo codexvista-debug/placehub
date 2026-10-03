@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type ThemeName = 'slate' | 'executive' | 'minimal';
+export type ThemeName = 'slate' | 'executive' | 'minimal' | 'graphite' | 'forest' | 'arctic' | 'sand';
 
 interface ThemeContextType {
   theme: ThemeName;
@@ -20,7 +20,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem('placerover_theme') as ThemeName;
-    if (saved && ['slate', 'executive', 'minimal'].includes(saved)) {
+    if (saved && ['slate', 'executive', 'minimal', 'graphite', 'forest', 'arctic', 'sand'].includes(saved)) {
       setThemeState(saved);
     } else {
       // Clear out deprecated legacy themes if any
