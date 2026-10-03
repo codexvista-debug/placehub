@@ -15,21 +15,15 @@ interface SheetData {
 // Smart Chronological Date Parser
 function parseDateToTimestamp(str: string): number {
   if (!str || str === '-') return 0;
-
-  // Clean string: replace multiple commas, normalize spaces
   const clean = str.trim().replace(/,/g, ' ').replace(/\s+/g, ' ');
-
-  // Try standard Date.parse
   const time = Date.parse(clean);
   if (!isNaN(time)) return time;
 
-  // Month name map
   const months: Record<string, number> = {
     jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
     jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
   };
 
-  // Match: Month Name + Day + Year (e.g. "October 1 2026", "July 16 2026", "Sep 9 2026")
   const mMatch = clean.match(/([a-zA-Z]{3,9})\s+(\d{1,2})\s+(\d{4})/i);
   if (mMatch) {
     const mStr = mMatch[1].toLowerCase().substring(0, 3);
@@ -41,7 +35,6 @@ function parseDateToTimestamp(str: string): number {
     }
   }
 
-  // Match: MM/DD/YYYY or DD/MM/YYYY
   const slashMatch = clean.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
   if (slashMatch) {
     const m = parseInt(slashMatch[1], 10) - 1;
@@ -62,6 +55,29 @@ function parseNumericValue(str: string): number | null {
   return isNaN(val) ? null : val;
 }
 
+// Column bubble badge styles for team submissions
+function getSubmissionBubbleStyle(headerName: string, cellValue: string) {
+  const h = headerName.toLowerCase();
+  const v = cellValue.toLowerCase();
+
+  if (h.includes('submitted') || h.includes('status') || h.includes('rejected')) {
+    if (v.includes('submitted')) return 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold';
+    if (v.includes('interview')) return 'bg-purple-100 text-purple-900 border-purple-300 font-bold';
+    if (v.includes('reject')) return 'bg-red-100 text-red-900 border-red-300 font-bold';
+    return 'bg-slate-100 text-slate-800 border-slate-200 font-medium';
+  }
+
+  if (h.includes('marketer')) return 'bg-amber-100 text-amber-900 border-amber-300 font-medium';
+  if (h.includes('consultant')) return 'bg-teal-100 text-teal-900 border-teal-200 font-medium';
+  if (h.includes('position') || h.includes('role')) return 'bg-purple-100 text-purple-900 border-purple-200 font-medium';
+  if (h.includes('client') || h.includes('vendor')) return 'bg-sky-100 text-sky-900 border-sky-200 font-semibold';
+  if (h.includes('rate') || h.includes('price')) return 'bg-emerald-50 text-emerald-900 border-emerald-200 font-semibold';
+  if (h.includes('location')) return 'bg-slate-100 text-slate-800 border-slate-200 font-normal';
+  if (h.includes('date')) return 'bg-cyan-50 text-cyan-900 border-cyan-200 font-semibold';
+
+  return 'bg-slate-50 text-slate-700 border-slate-200 font-normal';
+}
+
 export default function TeamSubmissionsPage() {
   const [sheetData, setSheetData] = useState<SheetData>({
     configured: false,
@@ -73,9 +89,28 @@ export default function TeamSubmissionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 50;
 
-  // Sorting - default to Date descending if Date column is present
+  // Header column popovers, searching, and filtering
+  const [activePopover, setActivePopover] = useState<string | null>(null);
+  const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
+  const [columnSelectedValues, setColumnSelectedValues] = useState<Record<string, string[]>>({});
   const [sortColumn, setSortColumn] = useState<string | null>('Date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Bulletproof popover close on outside click
+  useEffect(() => {
+    if (!activePopover) return;
+    const handleDocumentMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest('[data-popover="true"]') ||
+        target.closest('[data-popover-toggle="true"]')
+      ) return;
+      setActivePopover(null);
+    };
+    document.addEventListener('mousedown', handleDocumentMouseDown);
+    return () => document.removeEventListener('mousedown', handleDocumentMouseDown);
+  }, [activePopover]);
 
   // Fetch sheet data from server API
   const fetchData = async () => {
@@ -99,10 +134,25 @@ export default function TeamSubmissionsPage() {
     fetchData();
   }, []);
 
+  // Compute unique options for each column for the filter popovers
+  const columnUniqueOptions = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    sheetData.columnHeaders.forEach((header) => {
+      const set = new Set<string>();
+      sheetData.rows.forEach((row) => {
+        const val = row[header];
+        if (val && val !== '-') set.add(val);
+      });
+      map[header] = Array.from(set).sort();
+    });
+    return map;
+  }, [sheetData.rows, sheetData.columnHeaders]);
+
   // Filter & Smart Chronological / Numerical Sort
   const filteredAndSortedRows = useMemo(() => {
     let result = [...sheetData.rows];
 
+    // Global Search across all columns
     if (globalSearch.trim()) {
       const q = globalSearch.toLowerCase();
       result = result.filter((row) =>
@@ -110,6 +160,21 @@ export default function TeamSubmissionsPage() {
       );
     }
 
+    // Column-specific search & checkbox filters
+    sheetData.columnHeaders.forEach((header) => {
+      const search = columnSearch[header]?.toLowerCase();
+      if (search) {
+        result = result.filter((row) =>
+          (row[header] || '').toLowerCase().includes(search)
+        );
+      }
+      const sel = columnSelectedValues[header];
+      if (sel && sel.length > 0) {
+        result = result.filter((row) => sel.includes(row[header]));
+      }
+    });
+
+    // Sorting
     if (sortColumn) {
       const colLower = sortColumn.toLowerCase();
       const isDateCol = colLower.includes('date') || colLower.includes('time');
@@ -147,7 +212,11 @@ export default function TeamSubmissionsPage() {
     }
 
     return result;
-  }, [sheetData.rows, globalSearch, sortColumn, sortDirection]);
+  }, [sheetData.rows, sheetData.columnHeaders, globalSearch, columnSearch, columnSelectedValues, sortColumn, sortDirection]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [globalSearch, columnSearch, columnSelectedValues, sortColumn, sortDirection]);
 
   const totalPages = Math.ceil(filteredAndSortedRows.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
@@ -159,6 +228,35 @@ export default function TeamSubmissionsPage() {
   const handlePrev = () => {
     if (currentPage > 1) setCurrentPage((p) => p - 1);
   };
+
+  const toggleValueFilter = (header: string, option: string) => {
+    setColumnSelectedValues((prev) => {
+      const current = prev[header] || [];
+      const updated = current.includes(option)
+        ? current.filter((i) => i !== option)
+        : [...current, option];
+      return { ...prev, [header]: updated };
+    });
+  };
+
+  const clearColumnFilter = (header: string) => {
+    setColumnSearch((prev) => {
+      const n = { ...prev };
+      delete n[header];
+      return n;
+    });
+    setColumnSelectedValues((prev) => {
+      const n = { ...prev };
+      delete n[header];
+      return n;
+    });
+    if (sortColumn === header) setSortColumn(null);
+  };
+
+  const isColumnFilteredOrSorted = (header: string) =>
+    sortColumn === header ||
+    Boolean(columnSearch[header]) ||
+    Boolean(columnSelectedValues[header]?.length);
 
   return (
     <div className="min-h-screen theme-bg theme-text-body p-2 sm:p-4 font-[family-name:var(--font-geist-sans)]">
@@ -266,28 +364,149 @@ export default function TeamSubmissionsPage() {
                   <th className="px-3 py-2 font-bold w-12 text-center border-r theme-table-border select-none">
                     #
                   </th>
+
                   {sheetData.columnHeaders.map((header) => {
-                    const isSorted = sortColumn === header;
+                    const isFiltered = isColumnFilteredOrSorted(header);
+                    const isPopoverOpen = activePopover === header;
+                    const options = columnUniqueOptions[header] || [];
+
                     return (
                       <th
                         key={header}
-                        onClick={() => {
-                          if (sortColumn === header) {
-                            setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-                          } else {
-                            setSortColumn(header);
-                            setSortDirection('asc');
-                          }
-                        }}
-                        className="px-3 py-2 font-bold select-none whitespace-normal break-words max-w-[170px] border-r last:border-r-0 theme-table-border cursor-pointer hover:opacity-90 transition-opacity"
-                        title="Click to sort chronologically / alphabetically"
+                        className="px-3 py-2 font-bold select-none relative whitespace-normal break-words max-w-[150px] border-r last:border-r-0 theme-table-border"
                       >
-                        <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center justify-between gap-1">
                           <span className="leading-snug">{header}</span>
-                          <span className="text-[10px] opacity-75">
-                            {isSorted ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
-                          </span>
+                          <button
+                            type="button"
+                            data-popover-toggle="true"
+                            onClick={() => setActivePopover((prev) => (prev === header ? null : header))}
+                            className="p-0.5 px-1 rounded transition-colors shrink-0 cursor-pointer text-[11px]"
+                            style={{
+                              backgroundColor: isFiltered ? 'var(--color-accent)' : 'transparent',
+                              color: isFiltered ? 'var(--color-accent-text)' : 'var(--color-table-head-text)',
+                              opacity: isFiltered ? 1 : 0.7,
+                            }}
+                            title="Sort & Filter Column"
+                          >
+                            {sortColumn === header ? (sortDirection === 'asc' ? '▲' : '▼') : '⚙️'}
+                          </button>
                         </div>
+
+                        {/* Column Popover Menu */}
+                        {isPopoverOpen && (
+                          <div
+                            data-popover="true"
+                            className="absolute top-full left-0 mt-1 w-64 rounded-lg shadow-2xl p-3 z-50 text-xs font-normal normal-case border-2"
+                            style={{
+                              backgroundColor: 'var(--color-surface)',
+                              borderColor: 'var(--color-accent)',
+                              color: 'var(--color-text-body)',
+                            }}
+                          >
+                            {/* Sort */}
+                            <div
+                              className="flex flex-col gap-1 pb-2 border-b"
+                              style={{ borderColor: 'var(--color-border-soft)' }}
+                            >
+                              <span className="font-bold theme-text mb-1">Sort Column</span>
+                              {(['asc', 'desc'] as const).map((dir) => (
+                                <button
+                                  key={dir}
+                                  type="button"
+                                  onClick={() => {
+                                    setSortColumn(header);
+                                    setSortDirection(dir);
+                                    setActivePopover(null);
+                                  }}
+                                  className="flex items-center gap-2 p-1.5 rounded text-left cursor-pointer w-full transition-colors"
+                                  style={{
+                                    backgroundColor:
+                                      sortColumn === header && sortDirection === dir
+                                        ? 'var(--color-surface-alt)'
+                                        : 'transparent',
+                                    fontWeight: sortColumn === header && sortDirection === dir ? 700 : 400,
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-surface-alt)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    (e.currentTarget as HTMLElement).style.backgroundColor =
+                                      sortColumn === header && sortDirection === dir
+                                        ? 'var(--color-surface-alt)'
+                                        : 'transparent';
+                                  }}
+                                >
+                                  {dir === 'asc' ? '⬆️ Sort Ascending (A → Z)' : '⬇️ Sort Descending (Z → A)'}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Column search */}
+                            <div
+                              className="py-2 border-b flex flex-col gap-1"
+                              style={{ borderColor: 'var(--color-border-soft)' }}
+                            >
+                              <span className="font-bold theme-text mb-1">Search {header}</span>
+                              <input
+                                type="text"
+                                placeholder={`Type to search ${header}...`}
+                                value={columnSearch[header] || ''}
+                                onChange={(e) =>
+                                  setColumnSearch({ ...columnSearch, [header]: e.target.value })
+                                }
+                                className="w-full p-1.5 border rounded text-xs focus:outline-none theme-input theme-border"
+                              />
+                            </div>
+
+                            {/* Filter values */}
+                            {options.length > 0 && (
+                              <div className="py-2 flex flex-col gap-1 max-h-44 overflow-y-auto">
+                                <span className="font-bold theme-text mb-1">
+                                  Filter Values ({options.length})
+                                </span>
+                                {options.map((opt) => {
+                                  const isChecked = (columnSelectedValues[header] || []).includes(opt);
+                                  return (
+                                    <label
+                                      key={opt}
+                                      className="flex items-center gap-2 p-1.5 rounded cursor-pointer text-xs select-none theme-text-body transition-colors"
+                                      onMouseEnter={(e) => {
+                                        (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-surface-alt)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                                      }}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => toggleValueFilter(header, opt)}
+                                        className="rounded w-3.5 h-3.5 cursor-pointer"
+                                        style={{ accentColor: 'var(--color-accent)' }}
+                                      />
+                                      <span className="truncate">{opt}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Clear filter */}
+                            {isFiltered && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  clearColumnFilter(header);
+                                  setActivePopover(null);
+                                }}
+                                className="w-full mt-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded text-xs border border-red-200 transition-colors cursor-pointer"
+                              >
+                                Clear Column Filter
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </th>
                     );
                   })}
@@ -335,6 +554,8 @@ export default function TeamSubmissionsPage() {
                         </td>
                         {sheetData.columnHeaders.map((header) => {
                           const val = row[header] || '-';
+                          const bubbleStyle = getSubmissionBubbleStyle(header, val);
+
                           return (
                             <td
                               key={header}
@@ -345,7 +566,7 @@ export default function TeamSubmissionsPage() {
                               }}
                             >
                               {val !== '-' ? (
-                                <span className="inline-block px-1.5 py-0.5 rounded text-[11px] leading-tight font-medium">
+                                <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] border ${bubbleStyle} max-w-full break-words leading-tight`}>
                                   {val}
                                 </span>
                               ) : (
