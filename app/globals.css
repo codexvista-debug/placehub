@@ -82,43 +82,6 @@
   color: var(--color-text-body);
 }
 
-/* ---------- 3. MINIMAL (Notion / Warm Editorial) ----------
-   Aesthetic: Calming, human, sophisticated editorial look.
-   Warm alabaster background, warm stone typography, rich amber accents.
-*/
-[data-theme="minimal"],
-[data-theme="minimal"] body {
-  --color-bg:           #f7f6f3;   /* Notion-style warm alabaster */
-  --color-surface:      #ffffff;   /* crisp white card */
-  --color-surface-alt:  #f0ede6;   /* warm subtle stone */
-  --color-border:       #e6e3da;   /* warm stone border */
-  --color-border-soft:  #efece4;
-  --color-text:         #1c1917;   /* warm stone-900 */
-  --color-text-muted:   #78716c;   /* stone-500 */
-  --color-text-body:    #292524;   /* stone-800 */
-  --color-accent:       #d97706;   /* warm amber-600 */
-  --color-accent-hover: #b45309;   /* amber-700 */
-  --color-accent-text:  #ffffff;
-  --color-badge-bg:     #fef3c7;   /* amber-100 */
-  --color-badge-text:   #92400e;   /* amber-800 */
-  --color-input-bg:     #ffffff;
-  --color-input-border: #d6d3cb;
-  --color-code-bg:      #ece8df;
-  --color-header-bg:    #ffffff;   /* warm clean white header */
-  --color-header-border:#e6e3da;
-  --color-header-text:  #1c1917;   /* warm stone typography */
-  --color-header-logo-bg: #d97706; /* amber logo badge */
-  --color-header-active:#f5f4ef;
-  --color-header-hover: #faf9f6;
-  --color-table-head-bg:#292524;   /* deep warm stone head */
-  --color-table-head-text:#f5f4ef;
-  --color-table-row-even:#ffffff;
-  --color-table-row-odd:#faf9f6;
-  --color-table-row-hover:#f0ede6;
-  --color-table-border: #e6e3da;
-  background-color: var(--color-bg);
-  color: var(--color-text-body);
-}
 
 /* ---------- 4. GRAPHITE (Bloomberg / Data Terminal Inspired) ----------
    Aesthetic: Premium financial data-grid aesthetic. Charcoal header,
@@ -158,43 +121,6 @@
   color: var(--color-text-body);
 }
 
-/* ---------- 5. FOREST (Consulting Report / McKinsey Inspired) ----------
-   Aesthetic: Grounded, premium consulting aesthetic. Deep forest-green header,
-   light sage-grey canvas, pure white cards, emerald accents.
-*/
-[data-theme="forest"],
-[data-theme="forest"] body {
-  --color-bg:           #f0faf4;
-  --color-surface:      #ffffff;
-  --color-surface-alt:  #e8f5ee;
-  --color-border:       #bbddc9;
-  --color-border-soft:  #d1e9da;
-  --color-text:         #0d2018;
-  --color-text-muted:   #4d7a5e;
-  --color-text-body:    #1a3828;
-  --color-accent:       #16a34a;
-  --color-accent-hover: #15803d;
-  --color-accent-text:  #ffffff;
-  --color-badge-bg:     #dcfce7;
-  --color-badge-text:   #14532d;
-  --color-input-bg:     #ffffff;
-  --color-input-border: #bbddc9;
-  --color-code-bg:      #e8f5ee;
-  --color-header-bg:    #14532d;
-  --color-header-border:#166534;
-  --color-header-text:  #dcfce7;
-  --color-header-logo-bg: #16a34a;
-  --color-header-active:#166534;
-  --color-header-hover: #1a6b3a;
-  --color-table-head-bg:#0d2018;
-  --color-table-head-text:#d1e9da;
-  --color-table-row-even:#ffffff;
-  --color-table-row-odd:#f0faf4;
-  --color-table-row-hover:#e8f5ee;
-  --color-table-border: #bbddc9;
-  background-color: var(--color-bg);
-  color: var(--color-text-body);
-}
 
 /* ---------- 6. ARCTIC (Figma / Scandinavian Precision Inspired) ----------
    Aesthetic: Ice-cool, clinical precision. Icy navy header,
@@ -268,6 +194,123 @@
   --color-table-row-odd:#faf8f4;
   --color-table-row-hover:#f0ebe1;
   --color-table-border: #d9cfc0;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
+/* ---------- 6. PEARL (Apple / Precision Hardware Inspired) ----------
+   Aesthetic: Cool metallic silver-steel. Polished brushed-silver header with deep
+   navy text, platinum canvas, cobalt-blue accent — like an instrument panel.
+   Table head: deep steel-navy for maximum contrast on data rows.
+*/
+[data-theme="pearl"],
+[data-theme="pearl"] body {
+  --color-bg:           #eef1f6;   /* cool platinum canvas */
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #dde3ed;   /* blue-tinted silver */
+  --color-border:       #c2cdd9;   /* steel border */
+  --color-border-soft:  #d8e0ea;
+  --color-text:         #0a1628;   /* near-black navy */
+  --color-text-muted:   #5070a0;   /* muted cobalt-grey */
+  --color-text-body:    #16293d;
+  --color-accent:       #1345b7;   /* cobalt-blue accent */
+  --color-accent-hover: #0e39a3;
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #dbeafe;   /* blue-100 */
+  --color-badge-text:   #1e3a8a;
+  --color-input-bg:     #ffffff;
+  --color-input-border: #c2cdd9;
+  --color-code-bg:      #dde3ed;
+  --color-header-bg:    #c8d4e2;   /* polished silver header */
+  --color-header-border:#aebccd;   /* darker steel edge */
+  --color-header-text:  #0a1628;   /* deep navy text on silver */
+  --color-header-logo-bg: #1345b7; /* cobalt badge */
+  --color-header-active:#b0c0d4;
+  --color-header-hover: #bccad8;
+  --color-table-head-bg:#0a1628;   /* near-black navy head — max contrast */
+  --color-table-head-text:#dde3ed;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#eef1f6;
+  --color-table-row-hover:#dde3ed;
+  --color-table-border: #c2cdd9;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
+/* ---------- 7. DUSK (Luxury Boutique / Studio Editorial Inspired) ----------
+   Aesthetic: Sophisticated deep-plum header, barely-lavender canvas, violet accents.
+   Rich purple identity — modern luxury brand / fashion editorial meets data tool.
+   Table rows have a lavender tint for a unique reading experience.
+*/
+[data-theme="dusk"],
+[data-theme="dusk"] body {
+  --color-bg:           #f4f0fb;   /* ghostly lavender canvas */
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #ebe4f7;   /* soft lavender card alt */
+  --color-border:       #cfc0ea;   /* muted mauve border */
+  --color-border-soft:  #e0d6f3;
+  --color-text:         #1a0638;   /* ultra-deep plum text */
+  --color-text-muted:   #7b5fa8;   /* muted medium violet */
+  --color-text-body:    #2d1155;
+  --color-accent:       #8b5cf6;   /* violet-500 */
+  --color-accent-hover: #7c3aed;   /* violet-700 */
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #ede9fe;   /* violet-100 */
+  --color-badge-text:   #4c1d95;   /* violet-900 */
+  --color-input-bg:     #ffffff;
+  --color-input-border: #cfc0ea;
+  --color-code-bg:      #ebe4f7;
+  --color-header-bg:    #2e1065;   /* deep royal plum header */
+  --color-header-border:#3d1b84;
+  --color-header-text:  #ede9fe;   /* pale lavender white */
+  --color-header-logo-bg: #8b5cf6;
+  --color-header-active:#3d1b84;
+  --color-header-hover: #4c2297;
+  --color-table-head-bg:#1a0638;   /* near-black plum head */
+  --color-table-head-text:#ede9fe;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#f4f0fb;
+  --color-table-row-hover:#ebe4f7;
+  --color-table-border: #cfc0ea;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
+/* ---------- 8. OCEAN (Tailwind UI / Product Analytics Inspired) ----------
+   Aesthetic: Bold aquatic depth. Deep ocean-navy header, clear sky-blue canvas,
+   bright sky-600 accent — clean, energetic, open-air feel.
+   Table rows use sky-50 alternation for a distinctive airy data table look.
+*/
+[data-theme="ocean"],
+[data-theme="ocean"] body {
+  --color-bg:           #f0f9ff;   /* sky-50 */
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #e0f2fe;   /* sky-100 */
+  --color-border:       #7dd3fc;   /* sky-300 — vivid open borders */
+  --color-border-soft:  #bae6fd;   /* sky-200 */
+  --color-text:         #082f49;   /* sky-950 */
+  --color-text-muted:   #0369a1;   /* sky-700 */
+  --color-text-body:    #0c4a6e;   /* sky-900 */
+  --color-accent:       #0284c7;   /* sky-600 */
+  --color-accent-hover: #0369a1;   /* sky-700 */
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #e0f2fe;   /* sky-100 */
+  --color-badge-text:   #075985;   /* sky-800 */
+  --color-input-bg:     #ffffff;
+  --color-input-border: #7dd3fc;
+  --color-code-bg:      #e0f2fe;
+  --color-header-bg:    #0c4a6e;   /* deep ocean header */
+  --color-header-border:#075985;
+  --color-header-text:  #e0f2fe;
+  --color-header-logo-bg: #0284c7;
+  --color-header-active:#075985;
+  --color-header-hover: #0369a1;
+  --color-table-head-bg:#082f49;   /* midnight ocean table head */
+  --color-table-head-text:#e0f2fe;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#f0f9ff;
+  --color-table-row-hover:#e0f2fe;
+  --color-table-border: #bae6fd;
   background-color: var(--color-bg);
   color: var(--color-text-body);
 }
