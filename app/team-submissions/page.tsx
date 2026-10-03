@@ -12,6 +12,56 @@ interface SheetData {
   message?: string;
 }
 
+// Smart Chronological Date Parser
+function parseDateToTimestamp(str: string): number {
+  if (!str || str === '-') return 0;
+
+  // Clean string: replace multiple commas, normalize spaces
+  const clean = str.trim().replace(/,/g, ' ').replace(/\s+/g, ' ');
+
+  // Try standard Date.parse
+  const time = Date.parse(clean);
+  if (!isNaN(time)) return time;
+
+  // Month name map
+  const months: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+  };
+
+  // Match: Month Name + Day + Year (e.g. "October 1 2026", "July 16 2026", "Sep 9 2026")
+  const mMatch = clean.match(/([a-zA-Z]{3,9})\s+(\d{1,2})\s+(\d{4})/i);
+  if (mMatch) {
+    const mStr = mMatch[1].toLowerCase().substring(0, 3);
+    const m = months[mStr];
+    const d = parseInt(mMatch[2], 10);
+    const y = parseInt(mMatch[3], 10);
+    if (m !== undefined && !isNaN(d) && !isNaN(y)) {
+      return new Date(y, m, d).getTime();
+    }
+  }
+
+  // Match: MM/DD/YYYY or DD/MM/YYYY
+  const slashMatch = clean.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (slashMatch) {
+    const m = parseInt(slashMatch[1], 10) - 1;
+    const d = parseInt(slashMatch[2], 10);
+    const y = parseInt(slashMatch[3], 10);
+    return new Date(y, m, d).getTime();
+  }
+
+  return 0;
+}
+
+// Smart Numerical Parser for rates/amounts ($55.00, 60, etc.)
+function parseNumericValue(str: string): number | null {
+  if (!str || str === '-') return null;
+  const numStr = str.replace(/[^0-9.-]/g, '');
+  if (!numStr) return null;
+  const val = parseFloat(numStr);
+  return isNaN(val) ? null : val;
+}
+
 export default function TeamSubmissionsPage() {
   const [sheetData, setSheetData] = useState<SheetData>({
     configured: false,
@@ -23,9 +73,9 @@ export default function TeamSubmissionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 50;
 
-  // Sorting
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  // Sorting - default to Date descending if Date column is present
+  const [sortColumn, setSortColumn] = useState<string | null>('Date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Fetch sheet data from server API
   const fetchData = async () => {
@@ -49,7 +99,7 @@ export default function TeamSubmissionsPage() {
     fetchData();
   }, []);
 
-  // Filter & Sort
+  // Filter & Smart Chronological / Numerical Sort
   const filteredAndSortedRows = useMemo(() => {
     let result = [...sheetData.rows];
 
@@ -61,11 +111,37 @@ export default function TeamSubmissionsPage() {
     }
 
     if (sortColumn) {
+      const colLower = sortColumn.toLowerCase();
+      const isDateCol = colLower.includes('date') || colLower.includes('time');
+      const isNumericCol = colLower.includes('rate') || colLower.includes('amount') || colLower.includes('price');
+
       result.sort((a, b) => {
-        const valA = (a[sortColumn] || '').toLowerCase();
-        const valB = (b[sortColumn] || '').toLowerCase();
-        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        const rawA = a[sortColumn] || '';
+        const rawB = b[sortColumn] || '';
+
+        // 1. Date comparison
+        if (isDateCol) {
+          const timeA = parseDateToTimestamp(rawA);
+          const timeB = parseDateToTimestamp(rawB);
+          if (timeA !== timeB) {
+            return sortDirection === 'asc' ? timeA - timeB : timeB - timeA;
+          }
+        }
+
+        // 2. Numeric / Currency comparison
+        if (isNumericCol) {
+          const numA = parseNumericValue(rawA);
+          const numB = parseNumericValue(rawB);
+          if (numA !== null && numB !== null) {
+            return sortDirection === 'asc' ? numA - numB : numB - numA;
+          }
+        }
+
+        // 3. Fallback standard text comparison
+        const textA = rawA.toLowerCase();
+        const textB = rawB.toLowerCase();
+        if (textA < textB) return sortDirection === 'asc' ? -1 : 1;
+        if (textA > textB) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
     }
@@ -204,7 +280,7 @@ export default function TeamSubmissionsPage() {
                           }
                         }}
                         className="px-3 py-2 font-bold select-none whitespace-normal break-words max-w-[170px] border-r last:border-r-0 theme-table-border cursor-pointer hover:opacity-90 transition-opacity"
-                        title="Click to sort column"
+                        title="Click to sort chronologically / alphabetically"
                       >
                         <div className="flex items-center justify-between gap-1.5">
                           <span className="leading-snug">{header}</span>
