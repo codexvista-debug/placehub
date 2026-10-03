@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 
 interface SheetData {
   configured: boolean;
@@ -20,7 +19,6 @@ export default function TeamSubmissionsPage() {
     rows: [],
   });
   const [loading, setLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 50;
@@ -31,7 +29,6 @@ export default function TeamSubmissionsPage() {
 
   // Fetch sheet data from server API
   const fetchData = async () => {
-    setIsSyncing(true);
     try {
       const res = await fetch('/api/fetch-google-sheet', {
         cache: 'no-store',
@@ -44,7 +41,6 @@ export default function TeamSubmissionsPage() {
         error: err.message || 'Failed to connect to Google Sheets',
       }));
     } finally {
-      setIsSyncing(false);
       setLoading(false);
     }
   };
@@ -89,44 +85,8 @@ export default function TeamSubmissionsPage() {
   };
 
   return (
-    <div className="min-h-screen theme-bg theme-text-body p-2 sm:p-4 md:p-6 font-[family-name:var(--font-geist-sans)] flex flex-col gap-4">
-      
-      {/* Top Header Card */}
-      <div className="p-4 sm:p-6 rounded-xl shadow-xs border flex flex-col sm:flex-row sm:items-center justify-between gap-4 theme-surface theme-border">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">📊</span>
-            <h1 className="text-xl sm:text-2xl font-bold theme-text">
-              Team Submissions
-            </h1>
-            <span className="text-[11px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
-              Google Sheets Live Sync
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm theme-text-muted mt-1">
-            Real-time feed of your team members&apos; placement submissions directly from Google Sheets.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => fetchData()}
-            disabled={isSyncing}
-            className="px-3.5 py-2 font-bold rounded-lg text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5 theme-surface theme-border border hover:theme-surface-alt"
-          >
-            <span>{isSyncing ? '⏳ Syncing...' : '🔄 Refresh Live Sheet'}</span>
-          </button>
-          <Link
-            href="/"
-            className="px-3.5 py-2 font-bold rounded-lg text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5 theme-btn"
-          >
-            <span>📋 Go to Notion Live Table →</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Main Table Container */}
-      <div className="p-2 sm:p-4 rounded-xl shadow-xs border flex flex-col gap-3 theme-surface theme-border overflow-hidden">
+    <div className="min-h-screen theme-bg theme-text-body p-2 sm:p-4 font-[family-name:var(--font-geist-sans)]">
+      <main className="w-full max-w-full mx-auto flex flex-col theme-surface p-2 sm:p-4 rounded-xl shadow-xs border theme-border overflow-hidden">
         
         {/* Pagination & Search Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs font-medium theme-text-muted pb-2 border-b theme-border">
@@ -191,7 +151,7 @@ export default function TeamSubmissionsPage() {
 
         {/* Live Table with Horizontal Scroll */}
         <div
-          className="w-full overflow-x-auto rounded-lg shadow-xs min-h-[450px] border theme-table-border"
+          className="w-full overflow-x-auto rounded-lg shadow-xs min-h-[450px] border theme-table-border mt-2"
           style={{ backgroundColor: 'var(--color-table-row-odd)' }}
         >
           {loading ? (
@@ -204,7 +164,7 @@ export default function TeamSubmissionsPage() {
               <span className="text-3xl">⚙️</span>
               <p className="font-bold text-base theme-text">Google Sheet Not Configured Yet</p>
               <p className="text-xs theme-text-muted max-w-md leading-relaxed">
-                Add <code className="theme-code px-1.5 py-0.5 rounded font-mono font-bold">GOOGLE_SHEET_CSV_URL</code> to your Vercel Environment Variables with your brother&apos;s Google Sheet link to display the live submissions table here.
+                Add <code className="theme-code px-1.5 py-0.5 rounded font-mono font-bold">GOOGLE_SHEET_CSV_URL</code> to your Vercel Environment Variables to display the live submissions table here.
               </p>
             </div>
           ) : sheetData.error ? (
@@ -327,8 +287,7 @@ export default function TeamSubmissionsPage() {
           )}
         </div>
 
-      </div>
-
+      </main>
     </div>
   );
 }

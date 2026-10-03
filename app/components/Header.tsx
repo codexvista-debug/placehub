@@ -88,13 +88,10 @@ export default function Header() {
             </div>
             <Link
               href="/"
-              className="text-base sm:text-lg font-bold tracking-tight hover:opacity-90 transition-opacity flex items-center gap-1.5"
+              className="text-base sm:text-lg font-bold tracking-tight hover:opacity-90 transition-opacity"
               style={{ color: 'var(--color-header-text)' }}
             >
-              <span>PlaceRover</span>
-              <span className="hidden sm:inline-block text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.2 rounded font-mono font-normal">
-                🔒 Private
-              </span>
+              PlaceRover
             </Link>
           </div>
 
