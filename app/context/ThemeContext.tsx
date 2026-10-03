@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type ThemeName = 'emerald' | 'navy' | 'rose';
+export type ThemeName = 'slate' | 'executive' | 'minimal';
 
 interface ThemeContextType {
   theme: ThemeName;
@@ -10,18 +10,22 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'emerald',
+  theme: 'slate',
   setTheme: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeName>('emerald');
+  const [theme, setThemeState] = useState<ThemeName>('slate');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('placerover_theme') as ThemeName;
-    if (saved && ['emerald', 'navy', 'rose'].includes(saved)) {
+    if (saved && ['slate', 'executive', 'minimal'].includes(saved)) {
       setThemeState(saved);
+    } else {
+      // Clear out deprecated legacy themes if any
+      setThemeState('slate');
+      localStorage.setItem('placerover_theme', 'slate');
     }
     setMounted(true);
   }, []);
@@ -31,7 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('placerover_theme', newTheme);
   };
 
-  const activeTheme = mounted ? theme : 'emerald';
+  const activeTheme = mounted ? theme : 'slate';
 
   return (
     <ThemeContext.Provider value={{ theme: activeTheme, setTheme }}>

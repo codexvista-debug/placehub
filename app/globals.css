@@ -5,116 +5,117 @@
    All themes are driven by CSS custom properties on [data-theme]
    ============================================================ */
 
-/* ---------- EMERALD (default) ----------
-   Aesthetic: Professional corporate green. Crisp white content
-   areas, deep emerald header, subtle mint background.
+/* ---------- 1. SLATE (Modern SaaS / Linear Inspired) ----------
+   Aesthetic: Ultra-clean, distraction-free modern tech aesthetic.
+   Crisp white header, cool slate canvas, electric indigo accents.
 */
-[data-theme="emerald"],
-[data-theme="emerald"] body {
-  --color-bg:           #f0fdf4;   /* mint-tinted page bg */
-  --color-surface:      #ffffff;   /* card / panel bg */
-  --color-surface-alt:  #ecfdf5;   /* subtle inner panel */
-  --color-border:       #a7f3d0;   /* emerald-200 */
-  --color-border-soft:  #d1fae5;   /* emerald-100 */
-  --color-text:         #064e3b;   /* emerald-900 */
-  --color-text-muted:   #047857;   /* emerald-700 */
+[data-theme="slate"],
+[data-theme="slate"] body,
+:root {
+  --color-bg:           #f8fafc;   /* slate-50 */
+  --color-surface:      #ffffff;   /* pure crisp white card */
+  --color-surface-alt:  #f1f5f9;   /* slate-100 */
+  --color-border:       #e2e8f0;   /* slate-200 */
+  --color-border-soft:  #f1f5f9;   /* slate-100 */
+  --color-text:         #0f172a;   /* slate-900 */
+  --color-text-muted:   #64748b;   /* slate-500 */
   --color-text-body:    #1e293b;   /* slate-800 */
-  --color-accent:       #059669;   /* emerald-600 */
-  --color-accent-hover: #047857;   /* emerald-700 */
+  --color-accent:       #4f46e5;   /* indigo-600 */
+  --color-accent-hover: #4338ca;   /* indigo-700 */
   --color-accent-text:  #ffffff;
-  --color-badge-bg:     #d1fae5;
-  --color-badge-text:   #065f46;
+  --color-badge-bg:     #eef2ff;   /* indigo-50 */
+  --color-badge-text:   #4338ca;   /* indigo-700 */
   --color-input-bg:     #ffffff;
-  --color-input-border: #a7f3d0;
-  --color-code-bg:      #d1fae5;
-  --color-header-bg:    #064e3b;   /* emerald-950 */
-  --color-header-border:#065f46;
-  --color-header-text:  #ffffff;
-  --color-header-logo-bg: #059669;
-  --color-header-active:#065f46;
-  --color-header-hover: #047857;
-  --color-table-head-bg:#064e3b;
-  --color-table-head-text:#ecfdf5;
-  --color-table-row-even:#f0fdf4;
-  --color-table-row-odd:#ffffff;
-  --color-table-row-hover:#dcfce7;
-  --color-table-border: #a7f3d0;
+  --color-input-border: #cbd5e1;   /* slate-300 */
+  --color-code-bg:      #f1f5f9;
+  --color-header-bg:    #ffffff;   /* crisp white modern header */
+  --color-header-border:#e2e8f0;   /* clean subtle border */
+  --color-header-text:  #0f172a;   /* dark slate typography */
+  --color-header-logo-bg: #4f46e5; /* indigo badge */
+  --color-header-active:#f1f5f9;   /* subtle slate pill */
+  --color-header-hover: #f8fafc;
+  --color-table-head-bg:#0f172a;   /* sleek slate-900 head */
+  --color-table-head-text:#f8fafc;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#f8fafc;
+  --color-table-row-hover:#f1f5f9;
+  --color-table-border: #e2e8f0;
   background-color: var(--color-bg);
   color: var(--color-text-body);
 }
 
-/* ---------- NAVY (Midnight Navy) ----------
-   Aesthetic: Sleek full dark mode. Deep navy everything,
-   cyan/indigo neon accents, glowing highlights.
+/* ---------- 2. EXECUTIVE (Stripe & FinTech Inspired) ----------
+   Aesthetic: Authoritative enterprise corporate design.
+   Deep midnight navy header, porcelain ice-slate canvas, royal sapphire accents.
 */
-[data-theme="navy"],
-[data-theme="navy"] body {
-  --color-bg:           #0b1120;   /* near-black navy */
-  --color-surface:      #162032;   /* dark navy card */
-  --color-surface-alt:  #1e2d42;   /* slightly lighter panel */
-  --color-border:       #2d4a6b;   /* muted blue-grey */
-  --color-border-soft:  #1e3a52;
-  --color-text:         #e2e8f0;   /* slate-200 */
-  --color-text-muted:   #94a3b8;   /* slate-400 */
-  --color-text-body:    #cbd5e1;   /* slate-300 */
-  --color-accent:       #06b6d4;   /* cyan-500 */
-  --color-accent-hover: #0891b2;   /* cyan-600 */
-  --color-accent-text:  #000000;
-  --color-badge-bg:     #083344;
-  --color-badge-text:   #67e8f9;   /* cyan-300 */
-  --color-input-bg:     #0f1e30;
-  --color-input-border: #2d4a6b;
-  --color-code-bg:      #1e2d42;
-  --color-header-bg:    #060d1a;   /* deepest navy */
-  --color-header-border:#1e3a52;
-  --color-header-text:  #e2e8f0;
-  --color-header-logo-bg: #06b6d4;
-  --color-header-active:#083344;
-  --color-header-hover: #162032;
-  --color-table-head-bg:#060d1a;
-  --color-table-head-text:#67e8f9;
-  --color-table-row-even:#0b1120;
-  --color-table-row-odd:#0f1829;
-  --color-table-row-hover:#162032;
-  --color-table-border: #2d4a6b;
+[data-theme="executive"],
+[data-theme="executive"] body {
+  --color-bg:           #f1f5f9;   /* cool porcelain slate-100 */
+  --color-surface:      #ffffff;   /* pure white card */
+  --color-surface-alt:  #f8fafc;   /* slate-50 */
+  --color-border:       #cbd5e1;   /* slate-300 */
+  --color-border-soft:  #e2e8f0;   /* slate-200 */
+  --color-text:         #0f172a;   /* slate-900 */
+  --color-text-muted:   #475569;   /* slate-600 */
+  --color-text-body:    #1e293b;   /* slate-800 */
+  --color-accent:       #2563eb;   /* blue-600 */
+  --color-accent-hover: #1d4ed8;   /* blue-700 */
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #eff6ff;   /* blue-50 */
+  --color-badge-text:   #1e40af;   /* blue-800 */
+  --color-input-bg:     #ffffff;
+  --color-input-border: #cbd5e1;
+  --color-code-bg:      #e2e8f0;
+  --color-header-bg:    #0f172a;   /* deep executive sapphire header */
+  --color-header-border:#1e293b;
+  --color-header-text:  #f8fafc;   /* crisp white text */
+  --color-header-logo-bg: #2563eb; /* royal blue badge */
+  --color-header-active:#1e293b;
+  --color-header-hover: #334155;
+  --color-table-head-bg:#1e293b;   /* refined slate-800 head */
+  --color-table-head-text:#f8fafc;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#f8fafc;
+  --color-table-row-hover:#e2e8f0;
+  --color-table-border: #cbd5e1;
   background-color: var(--color-bg);
   color: var(--color-text-body);
 }
 
-/* ---------- ROSE (Warm Rose) ----------
-   Aesthetic: Warm, modern rose-pink theme. Blush backgrounds,
-   deep rose headers, vibrant pink accents.
+/* ---------- 3. MINIMAL (Notion / Warm Editorial) ----------
+   Aesthetic: Calming, human, sophisticated editorial look.
+   Warm alabaster background, warm stone typography, rich amber accents.
 */
-[data-theme="rose"],
-[data-theme="rose"] body {
-  --color-bg:           #fff1f2;   /* rose-50 */
-  --color-surface:      #ffffff;
-  --color-surface-alt:  #ffe4e6;   /* rose-100 */
-  --color-border:       #fda4af;   /* rose-300 */
-  --color-border-soft:  #ffe4e6;
-  --color-text:         #881337;   /* rose-900 */
-  --color-text-muted:   #be123c;   /* rose-700 */
-  --color-text-body:    #1e293b;
-  --color-accent:       #e11d48;   /* rose-600 */
-  --color-accent-hover: #be123c;   /* rose-700 */
+[data-theme="minimal"],
+[data-theme="minimal"] body {
+  --color-bg:           #f7f6f3;   /* Notion-style warm alabaster */
+  --color-surface:      #ffffff;   /* crisp white card */
+  --color-surface-alt:  #f0ede6;   /* warm subtle stone */
+  --color-border:       #e6e3da;   /* warm stone border */
+  --color-border-soft:  #efece4;
+  --color-text:         #1c1917;   /* warm stone-900 */
+  --color-text-muted:   #78716c;   /* stone-500 */
+  --color-text-body:    #292524;   /* stone-800 */
+  --color-accent:       #d97706;   /* warm amber-600 */
+  --color-accent-hover: #b45309;   /* amber-700 */
   --color-accent-text:  #ffffff;
-  --color-badge-bg:     #ffe4e6;
-  --color-badge-text:   #9f1239;
+  --color-badge-bg:     #fef3c7;   /* amber-100 */
+  --color-badge-text:   #92400e;   /* amber-800 */
   --color-input-bg:     #ffffff;
-  --color-input-border: #fda4af;
-  --color-code-bg:      #ffe4e6;
-  --color-header-bg:    #881337;   /* rose-900 */
-  --color-header-border:#9f1239;
-  --color-header-text:  #ffffff;
-  --color-header-logo-bg: #e11d48;
-  --color-header-active:#9f1239;
-  --color-header-hover: #be123c;
-  --color-table-head-bg:#881337;
-  --color-table-head-text:#ffe4e6;
-  --color-table-row-even:#fff1f2;
-  --color-table-row-odd:#ffffff;
-  --color-table-row-hover:#fecdd3;
-  --color-table-border: #fda4af;
+  --color-input-border: #d6d3cb;
+  --color-code-bg:      #ece8df;
+  --color-header-bg:    #ffffff;   /* warm clean white header */
+  --color-header-border:#e6e3da;
+  --color-header-text:  #1c1917;   /* warm stone typography */
+  --color-header-logo-bg: #d97706; /* amber logo badge */
+  --color-header-active:#f5f4ef;
+  --color-header-hover: #faf9f6;
+  --color-table-head-bg:#292524;   /* deep warm stone head */
+  --color-table-head-text:#f5f4ef;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#faf9f6;
+  --color-table-row-hover:#f0ede6;
+  --color-table-border: #e6e3da;
   background-color: var(--color-bg);
   color: var(--color-text-body);
 }
@@ -125,12 +126,12 @@
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   min-height: 100vh;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* Smooth transitions for themed elements */
 *, *::before, *::after {
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }
 
 /* ============================================================

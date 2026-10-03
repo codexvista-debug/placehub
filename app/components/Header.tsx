@@ -81,7 +81,7 @@ export default function Header() {
               className="w-8 h-8 rounded-lg font-black text-sm flex items-center justify-center shadow-sm transition-colors"
               style={{
                 backgroundColor: 'var(--color-header-logo-bg)',
-                color: 'var(--color-header-bg)',
+                color: '#ffffff',
               }}
             >
               P
