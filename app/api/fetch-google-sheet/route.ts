@@ -46,19 +46,18 @@ function parseCSV(text: string): string[][] {
   return lines;
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const customUrl = searchParams.get('sheetUrl');
-    const sheetCsvUrl = customUrl || process.env.GOOGLE_SHEET_CSV_URL;
+    const sheetCsvUrl = process.env.GOOGLE_SHEET_CSV_URL;
 
-    if (!sheetCsvUrl) {
+    if (!sheetCsvUrl || !sheetCsvUrl.trim()) {
       return NextResponse.json(
         {
           configured: false,
           rows: [],
           columnHeaders: [],
-          message: 'Google Sheet CSV URL is not configured yet.',
+          message:
+            'GOOGLE_SHEET_CSV_URL environment variable is not set in Vercel.',
         },
         { status: 200 }
       );
@@ -70,7 +69,6 @@ export async function GET(request: Request) {
       const match = exportUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
       if (match && match[1]) {
         const sheetId = match[1];
-        // Check if there is a specific gid parameter
         const gidMatch = exportUrl.match(/[#&?]gid=([0-9]+)/);
         const gid = gidMatch ? gidMatch[1] : '0';
         exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
@@ -79,7 +77,7 @@ export async function GET(request: Request) {
 
     // Fetch live CSV data from Google Sheets
     const res = await fetch(exportUrl, {
-      next: { revalidate: 0 },
+      cache: 'no-store',
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
@@ -89,7 +87,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           configured: true,
-          error: `Google Sheets returned HTTP status ${res.status}. Please make sure the sheet sharing is set to "Anyone with the link can view".`,
+          error: `Google Sheets returned HTTP status ${res.status}. If the sheet is restricted, ensure your Google Sheet or Google Service Account permissions allow access.`,
           rows: [],
           columnHeaders: [],
         },

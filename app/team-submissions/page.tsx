@@ -20,8 +20,6 @@ export default function TeamSubmissionsPage() {
     rows: [],
   });
   const [loading, setLoading] = useState(true);
-  const [customSheetUrl, setCustomSheetUrl] = useState('');
-  const [activeSheetUrl, setActiveSheetUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -31,22 +29,11 @@ export default function TeamSubmissionsPage() {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Load saved custom URL from localStorage if any
-  useEffect(() => {
-    const saved = localStorage.getItem('placerover_google_sheet_url');
-    if (saved) {
-      setCustomSheetUrl(saved);
-      setActiveSheetUrl(saved);
-    }
-  }, []);
-
-  // Fetch sheet data
-  const fetchData = async (urlToFetch?: string) => {
+  // Fetch sheet data from server API
+  const fetchData = async () => {
     setIsSyncing(true);
     try {
-      const targetUrl = urlToFetch !== undefined ? urlToFetch : activeSheetUrl;
-      const query = targetUrl ? `?sheetUrl=${encodeURIComponent(targetUrl)}` : '';
-      const res = await fetch(`/api/fetch-google-sheet${query}`, {
+      const res = await fetch('/api/fetch-google-sheet', {
         cache: 'no-store',
       });
       const data: SheetData = await res.json();
@@ -63,17 +50,8 @@ export default function TeamSubmissionsPage() {
   };
 
   useEffect(() => {
-    fetchData(activeSheetUrl);
-  }, [activeSheetUrl]);
-
-  // Handle saving new Google Sheet link
-  const handleConnectSheet = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customSheetUrl.trim()) return;
-    localStorage.setItem('placerover_google_sheet_url', customSheetUrl.trim());
-    setActiveSheetUrl(customSheetUrl.trim());
-    fetchData(customSheetUrl.trim());
-  };
+    fetchData();
+  }, []);
 
   // Filter & Sort
   const filteredAndSortedRows = useMemo(() => {
@@ -119,10 +97,10 @@ export default function TeamSubmissionsPage() {
           <div className="flex items-center gap-2">
             <span className="text-2xl">📊</span>
             <h1 className="text-xl sm:text-2xl font-bold theme-text">
-              Team Submissions (Google Sheets)
+              Team Submissions
             </h1>
             <span className="text-[11px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
-              Live Spreadsheet Sync
+              Google Sheets Live Sync
             </span>
           </div>
           <p className="text-xs sm:text-sm theme-text-muted mt-1">
@@ -146,58 +124,6 @@ export default function TeamSubmissionsPage() {
           </Link>
         </div>
       </div>
-
-      {/* Configuration & Quick Link Input Box */}
-      {(!sheetData.configured || sheetData.error || !activeSheetUrl) && !loading && (
-        <div className="p-5 sm:p-6 rounded-xl border flex flex-col gap-4 theme-surface-alt theme-border">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🔗</span>
-            <h2 className="text-base font-bold theme-text">
-              Connect Your Brother&apos;s Google Sheet in 2 Simple Steps
-            </h2>
-          </div>
-
-          <p className="text-xs sm:text-sm theme-text-body leading-relaxed">
-            To show his team submissions table here, follow these 2 quick steps:
-          </p>
-
-          <ol className="list-decimal list-inside text-xs sm:text-sm flex flex-col gap-2.5 font-medium theme-text-body">
-            <li className="p-3 rounded-lg border theme-surface theme-border shadow-2xs">
-              <strong className="theme-text">Make the Sheet Viewable:</strong> Open his Google Sheet → Click{' '}
-              <strong className="theme-text">Share</strong> at top-right → Under &quot;General Access&quot;, set to{' '}
-              <code className="theme-code px-1.5 py-0.5 rounded text-xs font-bold font-mono">
-                Anyone with the link can view
-              </code>.
-            </li>
-            <li className="p-3 rounded-lg border theme-surface theme-border shadow-2xs">
-              <strong className="theme-text">Paste the Sheet URL below:</strong> Copy the sharing link or browser URL of his Google Sheet and paste it right here!
-            </li>
-          </ol>
-
-          <form onSubmit={handleConnectSheet} className="flex flex-col sm:flex-row gap-2 items-center mt-1">
-            <input
-              type="url"
-              required
-              value={customSheetUrl}
-              onChange={(e) => setCustomSheetUrl(e.target.value)}
-              placeholder="Paste Google Sheets link here (e.g. https://docs.google.com/spreadsheets/d/...)"
-              className="flex-1 w-full p-2.5 border rounded-lg text-xs sm:text-sm font-mono theme-input theme-border focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-5 py-2.5 font-bold rounded-lg text-xs sm:text-sm transition-all shadow-xs cursor-pointer theme-btn whitespace-nowrap"
-            >
-              🚀 Connect &amp; Load Sheet
-            </button>
-          </form>
-
-          {sheetData.error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-semibold">
-              ⚠️ {sheetData.error}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Main Table Container */}
       <div className="p-2 sm:p-4 rounded-xl shadow-xs border flex flex-col gap-3 theme-surface theme-border overflow-hidden">
@@ -273,12 +199,28 @@ export default function TeamSubmissionsPage() {
               <span className="text-2xl animate-spin">⏳</span>
               <span>Loading Google Sheet data...</span>
             </div>
+          ) : !sheetData.configured ? (
+            <div className="flex flex-col items-center justify-center p-16 gap-3 text-center">
+              <span className="text-3xl">⚙️</span>
+              <p className="font-bold text-base theme-text">Google Sheet Not Configured Yet</p>
+              <p className="text-xs theme-text-muted max-w-md leading-relaxed">
+                Add <code className="theme-code px-1.5 py-0.5 rounded font-mono font-bold">GOOGLE_SHEET_CSV_URL</code> to your Vercel Environment Variables with your brother&apos;s Google Sheet link to display the live submissions table here.
+              </p>
+            </div>
+          ) : sheetData.error ? (
+            <div className="flex flex-col items-center justify-center p-16 gap-3 text-center">
+              <span className="text-3xl">⚠️</span>
+              <p className="font-bold text-base text-red-600 dark:text-red-400">Connection Error</p>
+              <p className="text-xs text-red-500 max-w-md leading-relaxed">
+                {sheetData.error}
+              </p>
+            </div>
           ) : sheetData.rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-16 gap-3 text-center">
               <span className="text-3xl">📄</span>
               <p className="font-bold text-base theme-text">No submission rows found</p>
               <p className="text-xs theme-text-muted max-w-md">
-                Paste his Google Sheet link in the box above to load and display all team submission rows in real time.
+                The connected Google Sheet does not contain any submission rows yet.
               </p>
             </div>
           ) : (
@@ -384,26 +326,6 @@ export default function TeamSubmissionsPage() {
             </table>
           )}
         </div>
-
-        {/* Change / Update Sheet Link details */}
-        {activeSheetUrl && (
-          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t theme-border text-xs theme-text-muted">
-            <span className="truncate max-w-md">
-              Connected Sheet: <strong className="theme-text font-mono text-[11px]">{activeSheetUrl}</strong>
-            </span>
-            <button
-              onClick={() => {
-                localStorage.removeItem('placerover_google_sheet_url');
-                setActiveSheetUrl('');
-                setCustomSheetUrl('');
-                setSheetData({ configured: false, columnHeaders: [], rows: [] });
-              }}
-              className="text-red-500 hover:underline font-semibold cursor-pointer shrink-0"
-            >
-              Disconnect / Change Sheet
-            </button>
-          </div>
-        )}
 
       </div>
 
