@@ -2,26 +2,15 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 export default function Header() {
   const pathname = usePathname();
-  const router = useRouter();
 
   // If we are on the login page, hide navigation header items
   if (pathname === '/login') {
     return null;
   }
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth', { method: 'DELETE' });
-      router.push('/login');
-      router.refresh();
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
-  };
 
   const navItems = [
     {
@@ -127,52 +116,6 @@ export default function Header() {
                 </Link>
               );
             })}
-
-            {/* Theme icon */}
-            <Link
-              href="/themes"
-              title="Change Theme"
-              className="p-2 rounded-md transition-all shrink-0"
-              style={{
-                backgroundColor: pathname === '/themes' ? 'var(--color-header-active)' : 'transparent',
-                color: 'var(--color-header-text)',
-                opacity: pathname === '/themes' ? 1 : 0.85,
-              }}
-              onMouseEnter={(e) => {
-                if (pathname !== '/themes') {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-header-hover)';
-                  (e.currentTarget as HTMLElement).style.opacity = '1';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (pathname !== '/themes') {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-                  (e.currentTarget as HTMLElement).style.opacity = '0.85';
-                }
-              }}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-              </svg>
-            </Link>
-
-            {/* Logout button */}
-            <button
-              onClick={handleLogout}
-              title="Lock & Logout"
-              className="p-2 rounded-md transition-all cursor-pointer opacity-75 hover:opacity-100 shrink-0"
-              style={{ color: 'var(--color-header-text)' }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-header-hover)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-              }}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
           </nav>
 
         </div>
