@@ -125,8 +125,8 @@ export default function TeamSubmissionsPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  // View Mode: 'table' vs 'metrics'
-  const [viewMode, setViewMode] = useState<'table' | 'metrics'>('table');
+  // View Mode: 'metrics' (default) vs 'table'
+  const [viewMode, setViewMode] = useState<'table' | 'metrics'>('metrics');
 
   // Metrics specific filter (e.g. filter metrics by a specific marketer or all)
   const [selectedMarketerFilter, setSelectedMarketerFilter] = useState<string>('all');
@@ -481,18 +481,6 @@ export default function TeamSubmissionsPage() {
           {/* Dual-View Switcher Tabs */}
           <div className="flex items-center gap-1.5 p-1 rounded-xl theme-surface-alt theme-border border shadow-2xs">
             <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'table'
-                  ? 'theme-btn shadow-xs'
-                  : 'theme-text-muted hover:theme-text'
-              }`}
-            >
-              <span>📋</span>
-              <span>Table View ({sheetData.rows.length})</span>
-            </button>
-
-            <button
               onClick={() => setViewMode('metrics')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'metrics'
@@ -502,6 +490,18 @@ export default function TeamSubmissionsPage() {
             >
               <span>📊</span>
               <span>Team Analytics &amp; Metrics</span>
+            </button>
+
+            <button
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? 'theme-btn shadow-xs'
+                  : 'theme-text-muted hover:theme-text'
+              }`}
+            >
+              <span>📋</span>
+              <span>Table View ({sheetData.rows.length})</span>
             </button>
           </div>
 
