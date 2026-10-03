@@ -48,7 +48,9 @@ function parseCSV(text: string): string[][] {
 
 export async function GET() {
   try {
-    const sheetCsvUrl = process.env.GOOGLE_SHEET_CSV_URL;
+    const sheetCsvUrl =
+      process.env.GOOGLE_SHEET_CSV_URL ||
+      'https://docs.google.com/spreadsheets/d/1nn7IPlRBzfsATildxJggKUcfuMMWcKTTW0UMPct7_-w/edit?usp=sharing';
 
     if (!sheetCsvUrl || !sheetCsvUrl.trim()) {
       return NextResponse.json(
@@ -56,38 +58,53 @@ export async function GET() {
           configured: false,
           rows: [],
           columnHeaders: [],
-          message:
-            'GOOGLE_SHEET_CSV_URL environment variable is not set in Vercel.',
+          message: 'GOOGLE_SHEET_CSV_URL environment variable is not set in Vercel.',
         },
         { status: 200 }
       );
     }
 
-    // Convert standard Google Sheet sharing links to export=csv link if necessary
-    let exportUrl = sheetCsvUrl.trim();
-    if (exportUrl.includes('docs.google.com/spreadsheets')) {
-      const match = exportUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    let rawUrl = sheetCsvUrl.trim();
+    let gvizUrl = rawUrl;
+    let exportUrl = rawUrl;
+
+    if (rawUrl.includes('docs.google.com/spreadsheets')) {
+      const match = rawUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
       if (match && match[1]) {
         const sheetId = match[1];
-        const gidMatch = exportUrl.match(/[#&?]gid=([0-9]+)/);
+        const gidMatch = rawUrl.match(/[#&?]gid=([0-9]+)/);
         const gid = gidMatch ? gidMatch[1] : '0';
+
+        // GViz endpoint works reliably across sharing settings
+        gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
         exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
       }
     }
 
-    // Fetch live CSV data from Google Sheets
-    const res = await fetch(exportUrl, {
+    // Try GViz endpoint first, fallback to standard export
+    let res = await fetch(gvizUrl, {
       cache: 'no-store',
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       },
     });
+
+    if (!res.ok) {
+      res = await fetch(exportUrl, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        },
+      });
+    }
 
     if (!res.ok) {
       return NextResponse.json(
         {
           configured: true,
-          error: `Google Sheets returned HTTP status ${res.status}. If the sheet is restricted, ensure your Google Sheet or Google Service Account permissions allow access.`,
+          error: `Google Sheets returned HTTP status ${res.status}. Please ensure the sheet sharing is set to "Anyone with the link can view".`,
           rows: [],
           columnHeaders: [],
         },
@@ -107,13 +124,37 @@ export async function GET() {
       });
     }
 
-    const columnHeaders = parsedData[0].map((h, index) => h || `Column ${index + 1}`);
+    // Identify last non-empty header index to clean up trailing blank spreadsheet columns
+    const rawHeaders = parsedData[0];
+    let lastValidHeaderIndex = rawHeaders.length - 1;
+    while (lastValidHeaderIndex >= 0 && (!rawHeaders[lastValidHeaderIndex] || rawHeaders[lastValidHeaderIndex].trim() === '')) {
+      lastValidHeaderIndex--;
+    }
+
+    if (lastValidHeaderIndex < 0) {
+      lastValidHeaderIndex = rawHeaders.length - 1;
+    }
+
+    // Clean headers up to the last non-empty column
+    const columnHeaders = rawHeaders.slice(0, lastValidHeaderIndex + 1).map((h, index) => {
+      const headerName = h.trim();
+      // If the first header is an email or date/timestamp from form submission
+      if (index === 0 && (headerName.includes('@') || !headerName)) {
+        return 'Date / Email';
+      }
+      return headerName || `Column ${index + 1}`;
+    });
+
+    // Clean and filter rows
     const rows = parsedData.slice(1).map((rowValues, rowIndex) => {
       const rowObj: Record<string, string> = { id: `sheet-row-${rowIndex + 1}` };
       columnHeaders.forEach((header, colIndex) => {
-        rowObj[header] = rowValues[colIndex] || '-';
+        rowObj[header] = (rowValues[colIndex] || '').trim() || '-';
       });
       return rowObj;
+    }).filter((row) => {
+      // Exclude completely empty rows
+      return columnHeaders.some((header) => row[header] && row[header] !== '-');
     });
 
     return NextResponse.json({
