@@ -54,11 +54,13 @@ export default function Header() {
 
   return (
     <header
-      className="sticky top-0 z-40 shadow-md border-b transition-colors duration-300"
+      className="sticky top-0 z-40 shadow-xs border-b transition-all duration-300"
       style={{
-        backgroundColor: 'var(--color-header-bg)',
+        background: 'var(--color-header-bg)',
         borderColor: 'var(--color-header-border)',
         color: 'var(--color-header-text)',
+        backdropFilter: 'var(--header-backdrop, none)',
+        WebkitBackdropFilter: 'var(--header-backdrop, none)',
       }}
     >
       <div className="max-w-full mx-auto px-3 sm:px-6">

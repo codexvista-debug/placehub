@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type ThemeName = 'slate' | 'executive' | 'graphite' | 'arctic' | 'sand' | 'pearl' | 'dusk' | 'ocean';
+export type ThemeName = 'glass' | 'silver' | 'slate' | 'executive' | 'graphite' | 'ocean' | 'dusk';
 
 interface ThemeContextType {
   theme: ThemeName;
@@ -10,22 +10,23 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'slate',
+  theme: 'glass',
   setTheme: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeName>('slate');
+  const [theme, setThemeState] = useState<ThemeName>('glass');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('placerover_theme') as ThemeName;
-    if (saved && ['slate', 'executive', 'graphite', 'arctic', 'sand', 'pearl', 'dusk', 'ocean'].includes(saved)) {
+    const validThemes: ThemeName[] = ['glass', 'silver', 'slate', 'executive', 'graphite', 'ocean', 'dusk'];
+    if (saved && validThemes.includes(saved)) {
       setThemeState(saved);
     } else {
-      // Clear out deprecated legacy themes if any
-      setThemeState('slate');
-      localStorage.setItem('placerover_theme', 'slate');
+      // Default to glass or migrate legacy themes
+      setThemeState('glass');
+      localStorage.setItem('placerover_theme', 'glass');
     }
     setMounted(true);
   }, []);

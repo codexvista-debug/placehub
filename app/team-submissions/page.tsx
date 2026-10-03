@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import CellBadge from '../components/CellBadge';
 
 interface SheetData {
   configured: boolean;
@@ -94,28 +95,7 @@ function normalizeName(name: string): string {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
-// Column bubble badge styles for team submissions
-function getSubmissionBubbleStyle(headerName: string, cellValue: string) {
-  const h = headerName.toLowerCase();
-  const v = cellValue.toLowerCase();
 
-  if (h.includes('submitted') || h.includes('status') || h.includes('rejected')) {
-    if (v.includes('submitted')) return 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold';
-    if (v.includes('interview')) return 'bg-purple-100 text-purple-900 border-purple-300 font-bold';
-    if (v.includes('reject')) return 'bg-red-100 text-red-900 border-red-300 font-bold';
-    return 'bg-slate-100 text-slate-800 border-slate-200 font-medium';
-  }
-
-  if (h.includes('marketer')) return 'bg-amber-100 text-amber-900 border-amber-300 font-medium';
-  if (h.includes('consultant')) return 'bg-teal-100 text-teal-900 border-teal-200 font-medium';
-  if (h.includes('position') || h.includes('role')) return 'bg-purple-100 text-purple-900 border-purple-200 font-medium';
-  if (h.includes('client') || h.includes('vendor')) return 'bg-sky-100 text-sky-900 border-sky-200 font-semibold';
-  if (h.includes('rate') || h.includes('price')) return 'bg-emerald-50 text-emerald-900 border-emerald-200 font-semibold';
-  if (h.includes('location')) return 'bg-slate-100 text-slate-800 border-slate-200 font-normal';
-  if (h.includes('date')) return 'bg-cyan-50 text-cyan-900 border-cyan-200 font-semibold';
-
-  return 'bg-slate-50 text-slate-700 border-slate-200 font-normal';
-}
 
 export default function TeamSubmissionsPage() {
   const [sheetData, setSheetData] = useState<SheetData>({
@@ -833,7 +813,6 @@ export default function TeamSubmissionsPage() {
                             </td>
                             {sheetData.columnHeaders.map((header) => {
                               const val = row[header] || '-';
-                              const bubbleStyle = getSubmissionBubbleStyle(header, val);
 
                               return (
                                 <td
@@ -844,13 +823,7 @@ export default function TeamSubmissionsPage() {
                                     color: 'var(--color-text-body)',
                                   }}
                                 >
-                                  {val !== '-' ? (
-                                    <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] border ${bubbleStyle} max-w-full break-words leading-tight`}>
-                                      {val}
-                                    </span>
-                                  ) : (
-                                    <span className="theme-text-muted italic text-[11px]">-</span>
-                                  )}
+                                  <CellBadge header={header} value={val} />
                                 </td>
                               );
                             })}

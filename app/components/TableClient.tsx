@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import CellBadge from './CellBadge';
 
 interface SchemaInfo {
   type: string;
@@ -13,21 +14,6 @@ interface TableClientProps {
   columnSchema?: Record<string, SchemaInfo>;
 }
 
-// Column bubble styles — these use stable Tailwind colors unrelated to the page theme
-// so they remain distinct/colorful regardless of theme
-function getColumnBubbleStyle(headerName: string) {
-  const h = headerName.toLowerCase();
-  if (h.includes('status'))    return 'bg-violet-100 text-violet-900 border-violet-300 font-semibold shadow-2xs';
-  if (h.includes('position'))  return 'bg-purple-100 text-purple-900 border-purple-200 font-medium';
-  if (h.includes('vendor') || h.includes('client')) return 'bg-sky-100 text-sky-900 border-sky-200 font-semibold';
-  if (h.includes('consultant')) return 'bg-teal-100 text-teal-900 border-teal-200 font-medium';
-  if (h.includes('marketer'))  return 'bg-amber-100 text-amber-900 border-amber-300 font-medium';
-  if (h.includes('support'))   return 'bg-rose-100 text-rose-900 border-rose-200 font-medium';
-  if (h.includes('recruiter')) return 'bg-indigo-100 text-indigo-900 border-indigo-200 font-medium';
-  if (h.includes('time'))      return 'bg-slate-100 text-slate-800 border-slate-200 font-normal';
-  if (h.includes('date'))      return 'bg-cyan-50 text-cyan-900 border-cyan-200 font-semibold';
-  return 'bg-slate-100 text-slate-700 border-slate-200 font-normal';
-}
 
 // Smart Chronological Date Parser for Live Table
 function parseDateToTimestamp(str: string): number {
@@ -595,7 +581,6 @@ export default function TableClient({
                       const cellKey = `${row.id}-${header}`;
                       const isUpdatedCell = updatedCellKeys.has(cellKey);
                       const status = savingStatus[cellKey];
-                      const bubbleStyle = getColumnBubbleStyle(header);
 
                       return (
                         <td
@@ -606,7 +591,7 @@ export default function TableClient({
                             if (isUpdatedCell) setUpdatedCellKeys((prev) => { const n = new Set(prev); n.delete(cellKey); return n; });
                             if (isNewRow) setNewRowIds((prev) => { const n = new Set(prev); n.delete(row.id); return n; });
                           }}
-                          className="px-2.5 py-2 border-r last:border-r-0 whitespace-normal break-words max-w-[170px] min-w-[110px] relative cursor-pointer transition-colors leading-snug align-top"
+                          className="px-2.5 py-2 border-r last:border-r-0 whitespace-normal break-words max-w-[180px] min-w-[110px] relative cursor-pointer transition-colors leading-snug align-top"
                           style={{
                             borderColor: 'var(--color-table-border)',
                             backgroundColor: isUpdatedCell ? 'rgba(245,158,11,0.12)' : undefined,
@@ -641,13 +626,7 @@ export default function TableClient({
                                   ⚡ Updated
                                 </span>
                               )}
-                              {val !== '-' ? (
-                                <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] border ${bubbleStyle} max-w-full break-words leading-tight`}>
-                                  {val}
-                                </span>
-                              ) : (
-                                <span className="theme-text-muted italic text-[11px]">-</span>
-                              )}
+                              <CellBadge header={header} value={val} />
                               {status === 'saving' && <span className="text-[10px] text-amber-600 font-semibold animate-pulse">Syncing...</span>}
                               {status === 'saved' && <span className="text-[10px] text-green-700 font-semibold">Saved ✓</span>}
                               {status === 'error' && <span className="text-[10px] text-red-600 font-semibold">Error ✕</span>}

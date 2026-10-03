@@ -1,40 +1,121 @@
 @import "tailwindcss";
 
 /* ============================================================
-   PlaceRover – Global Design Token System
+   PlaceRover – Dynamic Design Token System
    All themes are driven by CSS custom properties on [data-theme]
    ============================================================ */
 
-/* ---------- 1. SLATE (Modern SaaS / Linear Inspired) ----------
+/* ---------- 1. LIQUID GLASS (Frosted Glassmorphism) ----------
+   Aesthetic: Apple macOS / visionOS glassmorphism.
+   Translucent frosted-glass header with specular highlight,
+   subtle ambient airy canvas, glowing cyan-indigo accents.
+*/
+[data-theme="glass"],
+[data-theme="glass"] body {
+  --color-bg:           #f8fafd;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #f0f4f9;
+  --color-border:       #dbe4ee;
+  --color-border-soft:  #edf2f7;
+  --color-text:         #0c192c;
+  --color-text-muted:   #506680;
+  --color-text-body:    #1a2d42;
+  --color-accent:       #0284c7;
+  --color-accent-hover: #0369a1;
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #e0f2fe;
+  --color-badge-text:   #0369a1;
+  --color-input-bg:     #ffffff;
+  --color-input-border: #cbd5e1;
+  --color-code-bg:      #f0f4f9;
+  --color-header-bg:    rgba(255, 255, 255, 0.82);
+  --header-backdrop:    blur(16px);
+  --color-header-border:rgba(203, 213, 225, 0.7);
+  --color-header-text:  #0f172a;
+  --color-header-logo-bg: #0284c7;
+  --color-header-active:#e2e8f0;
+  --color-header-hover: #f1f5f9;
+  --color-table-head-bg:#0f172a;
+  --color-table-head-text:#f8fafc;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#f8fafd;
+  --color-table-row-hover:#f0f4f9;
+  --color-table-border: #dbe4ee;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
+/* ---------- 2. BRUSHED SILVER (Chrome & Aerospace Precision) ----------
+   Aesthetic: Polished brushed-chrome metallic hardware.
+   Metallic silver gradient header with chrome edge, cool platinum canvas,
+   dark titanium table head, high-polish cobalt-blue accents.
+*/
+[data-theme="silver"],
+[data-theme="silver"] body {
+  --color-bg:           #edf1f6;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #e2e8f0;
+  --color-border:       #cbd5e1;
+  --color-border-soft:  #e2e8f0;
+  --color-text:         #0f172a;
+  --color-text-muted:   #475569;
+  --color-text-body:    #1e293b;
+  --color-accent:       #1d4ed8;
+  --color-accent-hover: #1e40af;
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #e0e7ff;
+  --color-badge-text:   #1e3a8a;
+  --color-input-bg:     #ffffff;
+  --color-input-border: #94a3b8;
+  --color-code-bg:      #e2e8f0;
+  --color-header-bg:    linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
+  --header-backdrop:    none;
+  --color-header-border:#94a3b8;
+  --color-header-text:  #0f172a;
+  --color-header-logo-bg: #1d4ed8;
+  --color-header-active:#b0c0d4;
+  --color-header-hover: #c4d1e2;
+  --color-table-head-bg:linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --color-table-head-text:#f8fafc;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#edf1f6;
+  --color-table-row-hover:#e2e8f0;
+  --color-table-border: #cbd5e1;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
+/* ---------- 3. MODERN SLATE (Linear / Silicon Valley SaaS) ----------
    Aesthetic: Ultra-clean, distraction-free modern tech aesthetic.
    Crisp white header, cool slate canvas, electric indigo accents.
 */
 [data-theme="slate"],
 [data-theme="slate"] body,
 :root {
-  --color-bg:           #f8fafc;   /* slate-50 */
-  --color-surface:      #ffffff;   /* pure crisp white card */
-  --color-surface-alt:  #f1f5f9;   /* slate-100 */
-  --color-border:       #e2e8f0;   /* slate-200 */
-  --color-border-soft:  #f1f5f9;   /* slate-100 */
-  --color-text:         #0f172a;   /* slate-900 */
-  --color-text-muted:   #64748b;   /* slate-500 */
-  --color-text-body:    #1e293b;   /* slate-800 */
-  --color-accent:       #4f46e5;   /* indigo-600 */
-  --color-accent-hover: #4338ca;   /* indigo-700 */
+  --color-bg:           #f8fafc;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #f1f5f9;
+  --color-border:       #e2e8f0;
+  --color-border-soft:  #f1f5f9;
+  --color-text:         #0f172a;
+  --color-text-muted:   #64748b;
+  --color-text-body:    #1e293b;
+  --color-accent:       #4f46e5;
+  --color-accent-hover: #4338ca;
   --color-accent-text:  #ffffff;
-  --color-badge-bg:     #eef2ff;   /* indigo-50 */
-  --color-badge-text:   #4338ca;   /* indigo-700 */
+  --color-badge-bg:     #eef2ff;
+  --color-badge-text:   #4338ca;
   --color-input-bg:     #ffffff;
-  --color-input-border: #cbd5e1;   /* slate-300 */
+  --color-input-border: #cbd5e1;
   --color-code-bg:      #f1f5f9;
-  --color-header-bg:    #ffffff;   /* crisp white modern header */
-  --color-header-border:#e2e8f0;   /* clean subtle border */
-  --color-header-text:  #0f172a;   /* dark slate typography */
-  --color-header-logo-bg: #4f46e5; /* indigo badge */
-  --color-header-active:#f1f5f9;   /* subtle slate pill */
+  --color-header-bg:    #ffffff;
+  --header-backdrop:    none;
+  --color-header-border:#e2e8f0;
+  --color-header-text:  #0f172a;
+  --color-header-logo-bg: #4f46e5;
+  --color-header-active:#f1f5f9;
   --color-header-hover: #f8fafc;
-  --color-table-head-bg:#0f172a;   /* sleek slate-900 head */
+  --color-table-head-bg:#0f172a;
   --color-table-head-text:#f8fafc;
   --color-table-row-even:#ffffff;
   --color-table-row-odd:#f8fafc;
@@ -44,35 +125,36 @@
   color: var(--color-text-body);
 }
 
-/* ---------- 2. EXECUTIVE (Stripe & FinTech Inspired) ----------
+/* ---------- 4. EXECUTIVE (Stripe & Enterprise FinTech) ----------
    Aesthetic: Authoritative enterprise corporate design.
    Deep midnight navy header, porcelain ice-slate canvas, royal sapphire accents.
 */
 [data-theme="executive"],
 [data-theme="executive"] body {
-  --color-bg:           #f1f5f9;   /* cool porcelain slate-100 */
-  --color-surface:      #ffffff;   /* pure white card */
-  --color-surface-alt:  #f8fafc;   /* slate-50 */
-  --color-border:       #cbd5e1;   /* slate-300 */
-  --color-border-soft:  #e2e8f0;   /* slate-200 */
-  --color-text:         #0f172a;   /* slate-900 */
-  --color-text-muted:   #475569;   /* slate-600 */
-  --color-text-body:    #1e293b;   /* slate-800 */
-  --color-accent:       #2563eb;   /* blue-600 */
-  --color-accent-hover: #1d4ed8;   /* blue-700 */
+  --color-bg:           #f1f5f9;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #f8fafc;
+  --color-border:       #cbd5e1;
+  --color-border-soft:  #e2e8f0;
+  --color-text:         #0f172a;
+  --color-text-muted:   #475569;
+  --color-text-body:    #1e293b;
+  --color-accent:       #2563eb;
+  --color-accent-hover: #1d4ed8;
   --color-accent-text:  #ffffff;
-  --color-badge-bg:     #eff6ff;   /* blue-50 */
-  --color-badge-text:   #1e40af;   /* blue-800 */
+  --color-badge-bg:     #eff6ff;
+  --color-badge-text:   #1e40af;
   --color-input-bg:     #ffffff;
   --color-input-border: #cbd5e1;
   --color-code-bg:      #e2e8f0;
-  --color-header-bg:    #0f172a;   /* deep executive sapphire header */
+  --color-header-bg:    #0f172a;
+  --header-backdrop:    none;
   --color-header-border:#1e293b;
-  --color-header-text:  #f8fafc;   /* crisp white text */
-  --color-header-logo-bg: #2563eb; /* royal blue badge */
+  --color-header-text:  #f8fafc;
+  --color-header-logo-bg: #2563eb;
   --color-header-active:#1e293b;
   --color-header-hover: #334155;
-  --color-table-head-bg:#1e293b;   /* refined slate-800 head */
+  --color-table-head-bg:#1e293b;
   --color-table-head-text:#f8fafc;
   --color-table-row-even:#ffffff;
   --color-table-row-odd:#f8fafc;
@@ -82,8 +164,7 @@
   color: var(--color-text-body);
 }
 
-
-/* ---------- 4. GRAPHITE (Bloomberg / Data Terminal Inspired) ----------
+/* ---------- 5. GRAPHITE (Bloomberg / Data Terminal) ----------
    Aesthetic: Premium financial data-grid aesthetic. Charcoal header,
    ash-zinc canvas, clean off-white cards, sharp teal-green accents.
 */
@@ -106,6 +187,7 @@
   --color-input-border: #d4d4d8;
   --color-code-bg:      #e4e4e7;
   --color-header-bg:    #27272a;
+  --header-backdrop:    none;
   --color-header-border:#3f3f46;
   --color-header-text:  #f4f4f5;
   --color-header-logo-bg: #0d9488;
@@ -121,196 +203,80 @@
   color: var(--color-text-body);
 }
 
-
-/* ---------- 6. ARCTIC (Figma / Scandinavian Precision Inspired) ----------
-   Aesthetic: Ice-cool, clinical precision. Icy navy header,
-   cool blue-grey canvas, sharp violet accents.
-*/
-[data-theme="arctic"],
-[data-theme="arctic"] body {
-  --color-bg:           #f0f4f8;
-  --color-surface:      #ffffff;
-  --color-surface-alt:  #e3eaf2;
-  --color-border:       #c9d7e4;
-  --color-border-soft:  #dce6ef;
-  --color-text:         #0c1a2b;
-  --color-text-muted:   #5b7594;
-  --color-text-body:    #1a2e42;
-  --color-accent:       #7c3aed;
-  --color-accent-hover: #6d28d9;
-  --color-accent-text:  #ffffff;
-  --color-badge-bg:     #ede9fe;
-  --color-badge-text:   #4c1d95;
-  --color-input-bg:     #ffffff;
-  --color-input-border: #c9d7e4;
-  --color-code-bg:      #e3eaf2;
-  --color-header-bg:    #1e3a5f;
-  --color-header-border:#234876;
-  --color-header-text:  #e8f2fc;
-  --color-header-logo-bg: #7c3aed;
-  --color-header-active:#234876;
-  --color-header-hover: #2a5592;
-  --color-table-head-bg:#0c1a2b;
-  --color-table-head-text:#e3eaf2;
-  --color-table-row-even:#ffffff;
-  --color-table-row-odd:#f0f4f8;
-  --color-table-row-hover:#e3eaf2;
-  --color-table-border: #c9d7e4;
-  background-color: var(--color-bg);
-  color: var(--color-text-body);
-}
-
-/* ---------- 7. SAND (Palantir / Analytical Intelligence Inspired) ----------
-   Aesthetic: Refined document-first analytical aesthetic. Warm linen header,
-   sand canvas, deep umber body text, burnt sienna accents.
-*/
-[data-theme="sand"],
-[data-theme="sand"] body {
-  --color-bg:           #faf8f4;
-  --color-surface:      #ffffff;
-  --color-surface-alt:  #f0ebe1;
-  --color-border:       #d9cfc0;
-  --color-border-soft:  #e8e0d4;
-  --color-text:         #2c1f14;
-  --color-text-muted:   #7c6651;
-  --color-text-body:    #3d2a1a;
-  --color-accent:       #c2410c;
-  --color-accent-hover: #9a3412;
-  --color-accent-text:  #ffffff;
-  --color-badge-bg:     #fff7ed;
-  --color-badge-text:   #7c2d12;
-  --color-input-bg:     #ffffff;
-  --color-input-border: #d9cfc0;
-  --color-code-bg:      #f0ebe1;
-  --color-header-bg:    #f5f0e8;
-  --color-header-border:#d9cfc0;
-  --color-header-text:  #2c1f14;
-  --color-header-logo-bg: #c2410c;
-  --color-header-active:#e8dfd2;
-  --color-header-hover: #eee6d8;
-  --color-table-head-bg:#2c1f14;
-  --color-table-head-text:#faf8f4;
-  --color-table-row-even:#ffffff;
-  --color-table-row-odd:#faf8f4;
-  --color-table-row-hover:#f0ebe1;
-  --color-table-border: #d9cfc0;
-  background-color: var(--color-bg);
-  color: var(--color-text-body);
-}
-
-/* ---------- 6. PEARL (Apple / Precision Hardware Inspired) ----------
-   Aesthetic: Cool metallic silver-steel. Polished brushed-silver header with deep
-   navy text, platinum canvas, cobalt-blue accent — like an instrument panel.
-   Table head: deep steel-navy for maximum contrast on data rows.
-*/
-[data-theme="pearl"],
-[data-theme="pearl"] body {
-  --color-bg:           #eef1f6;   /* cool platinum canvas */
-  --color-surface:      #ffffff;
-  --color-surface-alt:  #dde3ed;   /* blue-tinted silver */
-  --color-border:       #c2cdd9;   /* steel border */
-  --color-border-soft:  #d8e0ea;
-  --color-text:         #0a1628;   /* near-black navy */
-  --color-text-muted:   #5070a0;   /* muted cobalt-grey */
-  --color-text-body:    #16293d;
-  --color-accent:       #1345b7;   /* cobalt-blue accent */
-  --color-accent-hover: #0e39a3;
-  --color-accent-text:  #ffffff;
-  --color-badge-bg:     #dbeafe;   /* blue-100 */
-  --color-badge-text:   #1e3a8a;
-  --color-input-bg:     #ffffff;
-  --color-input-border: #c2cdd9;
-  --color-code-bg:      #dde3ed;
-  --color-header-bg:    #c8d4e2;   /* polished silver header */
-  --color-header-border:#aebccd;   /* darker steel edge */
-  --color-header-text:  #0a1628;   /* deep navy text on silver */
-  --color-header-logo-bg: #1345b7; /* cobalt badge */
-  --color-header-active:#b0c0d4;
-  --color-header-hover: #bccad8;
-  --color-table-head-bg:#0a1628;   /* near-black navy head — max contrast */
-  --color-table-head-text:#dde3ed;
-  --color-table-row-even:#ffffff;
-  --color-table-row-odd:#eef1f6;
-  --color-table-row-hover:#dde3ed;
-  --color-table-border: #c2cdd9;
-  background-color: var(--color-bg);
-  color: var(--color-text-body);
-}
-
-/* ---------- 7. DUSK (Luxury Boutique / Studio Editorial Inspired) ----------
-   Aesthetic: Sophisticated deep-plum header, barely-lavender canvas, violet accents.
-   Rich purple identity — modern luxury brand / fashion editorial meets data tool.
-   Table rows have a lavender tint for a unique reading experience.
-*/
-[data-theme="dusk"],
-[data-theme="dusk"] body {
-  --color-bg:           #f4f0fb;   /* ghostly lavender canvas */
-  --color-surface:      #ffffff;
-  --color-surface-alt:  #ebe4f7;   /* soft lavender card alt */
-  --color-border:       #cfc0ea;   /* muted mauve border */
-  --color-border-soft:  #e0d6f3;
-  --color-text:         #1a0638;   /* ultra-deep plum text */
-  --color-text-muted:   #7b5fa8;   /* muted medium violet */
-  --color-text-body:    #2d1155;
-  --color-accent:       #8b5cf6;   /* violet-500 */
-  --color-accent-hover: #7c3aed;   /* violet-700 */
-  --color-accent-text:  #ffffff;
-  --color-badge-bg:     #ede9fe;   /* violet-100 */
-  --color-badge-text:   #4c1d95;   /* violet-900 */
-  --color-input-bg:     #ffffff;
-  --color-input-border: #cfc0ea;
-  --color-code-bg:      #ebe4f7;
-  --color-header-bg:    #2e1065;   /* deep royal plum header */
-  --color-header-border:#3d1b84;
-  --color-header-text:  #ede9fe;   /* pale lavender white */
-  --color-header-logo-bg: #8b5cf6;
-  --color-header-active:#3d1b84;
-  --color-header-hover: #4c2297;
-  --color-table-head-bg:#1a0638;   /* near-black plum head */
-  --color-table-head-text:#ede9fe;
-  --color-table-row-even:#ffffff;
-  --color-table-row-odd:#f4f0fb;
-  --color-table-row-hover:#ebe4f7;
-  --color-table-border: #cfc0ea;
-  background-color: var(--color-bg);
-  color: var(--color-text-body);
-}
-
-/* ---------- 8. OCEAN (Tailwind UI / Product Analytics Inspired) ----------
-   Aesthetic: Bold aquatic depth. Deep ocean-navy header, clear sky-blue canvas,
-   bright sky-600 accent — clean, energetic, open-air feel.
-   Table rows use sky-50 alternation for a distinctive airy data table look.
+/* ---------- 6. OCEAN BREEZE (Aquatic Product Analytics) ----------
+   Aesthetic: Bold aquatic depth. Deep ocean-navy gradient header,
+   clear sky-blue canvas, bright sky-600 accent — clean and energetic.
 */
 [data-theme="ocean"],
 [data-theme="ocean"] body {
-  --color-bg:           #f0f9ff;   /* sky-50 */
+  --color-bg:           #f0f9ff;
   --color-surface:      #ffffff;
-  --color-surface-alt:  #e0f2fe;   /* sky-100 */
-  --color-border:       #7dd3fc;   /* sky-300 — vivid open borders */
-  --color-border-soft:  #bae6fd;   /* sky-200 */
-  --color-text:         #082f49;   /* sky-950 */
-  --color-text-muted:   #0369a1;   /* sky-700 */
-  --color-text-body:    #0c4a6e;   /* sky-900 */
-  --color-accent:       #0284c7;   /* sky-600 */
-  --color-accent-hover: #0369a1;   /* sky-700 */
+  --color-surface-alt:  #e0f2fe;
+  --color-border:       #7dd3fc;
+  --color-border-soft:  #bae6fd;
+  --color-text:         #082f49;
+  --color-text-muted:   #0369a1;
+  --color-text-body:    #0c4a6e;
+  --color-accent:       #0284c7;
+  --color-accent-hover: #0369a1;
   --color-accent-text:  #ffffff;
-  --color-badge-bg:     #e0f2fe;   /* sky-100 */
-  --color-badge-text:   #075985;   /* sky-800 */
+  --color-badge-bg:     #e0f2fe;
+  --color-badge-text:   #075985;
   --color-input-bg:     #ffffff;
   --color-input-border: #7dd3fc;
   --color-code-bg:      #e0f2fe;
-  --color-header-bg:    #0c4a6e;   /* deep ocean header */
-  --color-header-border:#075985;
+  --color-header-bg:    linear-gradient(135deg, #075985 0%, #0c4a6e 100%);
+  --header-backdrop:    none;
+  --color-header-border:#0369a1;
   --color-header-text:  #e0f2fe;
   --color-header-logo-bg: #0284c7;
   --color-header-active:#075985;
-  --color-header-hover: #0369a1;
-  --color-table-head-bg:#082f49;   /* midnight ocean table head */
+  --color-header-hover: #0284c7;
+  --color-table-head-bg:#082f49;
   --color-table-head-text:#e0f2fe;
   --color-table-row-even:#ffffff;
   --color-table-row-odd:#f0f9ff;
   --color-table-row-hover:#e0f2fe;
   --color-table-border: #bae6fd;
+  background-color: var(--color-bg);
+  color: var(--color-text-body);
+}
+
+/* ---------- 7. DUSK (Luxury Boutique & Studio Editorial) ----------
+   Aesthetic: Sophisticated deep-plum gradient header, ghostly lavender canvas,
+   violet accents. Rich purple identity.
+*/
+[data-theme="dusk"],
+[data-theme="dusk"] body {
+  --color-bg:           #f4f0fb;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #ebe4f7;
+  --color-border:       #cfc0ea;
+  --color-border-soft:  #e0d6f3;
+  --color-text:         #1a0638;
+  --color-text-muted:   #7b5fa8;
+  --color-text-body:    #2d1155;
+  --color-accent:       #8b5cf6;
+  --color-accent-hover: #7c3aed;
+  --color-accent-text:  #ffffff;
+  --color-badge-bg:     #ede9fe;
+  --color-badge-text:   #4c1d95;
+  --color-input-bg:     #ffffff;
+  --color-input-border: #cfc0ea;
+  --color-code-bg:      #ebe4f7;
+  --color-header-bg:    linear-gradient(135deg, #3b0764 0%, #2e1065 100%);
+  --header-backdrop:    none;
+  --color-header-border:#3d1b84;
+  --color-header-text:  #ede9fe;
+  --color-header-logo-bg: #8b5cf6;
+  --color-header-active:#3d1b84;
+  --color-header-hover: #4c2297;
+  --color-table-head-bg:#1a0638;
+  --color-table-head-text:#ede9fe;
+  --color-table-row-even:#ffffff;
+  --color-table-row-odd:#f4f0fb;
+  --color-table-row-hover:#ebe4f7;
+  --color-table-border: #cfc0ea;
   background-color: var(--color-bg);
   color: var(--color-text-body);
 }
@@ -379,7 +345,7 @@ body {
 
 /* Table */
 .theme-table-head {
-  background-color: var(--color-table-head-bg);
+  background: var(--color-table-head-bg);
   color: var(--color-table-head-text);
 }
 .theme-table-row-even  { background-color: var(--color-table-row-even); }
