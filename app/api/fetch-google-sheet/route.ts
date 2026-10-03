@@ -75,7 +75,6 @@ export async function GET() {
         const gidMatch = rawUrl.match(/[#&?]gid=([0-9]+)/);
         const gid = gidMatch ? gidMatch[1] : '0';
 
-        // GViz endpoint works reliably across sharing settings
         gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
         exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
       }
@@ -127,7 +126,10 @@ export async function GET() {
     // Identify last non-empty header index to clean up trailing blank spreadsheet columns
     const rawHeaders = parsedData[0];
     let lastValidHeaderIndex = rawHeaders.length - 1;
-    while (lastValidHeaderIndex >= 0 && (!rawHeaders[lastValidHeaderIndex] || rawHeaders[lastValidHeaderIndex].trim() === '')) {
+    while (
+      lastValidHeaderIndex >= 0 &&
+      (!rawHeaders[lastValidHeaderIndex] || rawHeaders[lastValidHeaderIndex].trim() === '')
+    ) {
       lastValidHeaderIndex--;
     }
 
@@ -135,33 +137,53 @@ export async function GET() {
       lastValidHeaderIndex = rawHeaders.length - 1;
     }
 
-    // Clean headers up to the last non-empty column
+    // Clean headers: Column 1 is named "Date", others keep their clean names
     const columnHeaders = rawHeaders.slice(0, lastValidHeaderIndex + 1).map((h, index) => {
-      const headerName = h.trim();
-      // If the first header is an email or date/timestamp from form submission
-      if (index === 0 && (headerName.includes('@') || !headerName)) {
-        return 'Date / Email';
-      }
-      return headerName || `Column ${index + 1}`;
+      if (index === 0) return 'Date';
+      return h.trim() || `Column ${index + 1}`;
     });
 
-    // Clean and filter rows
-    const rows = parsedData.slice(1).map((rowValues, rowIndex) => {
-      const rowObj: Record<string, string> = { id: `sheet-row-${rowIndex + 1}` };
+    // Clean, validate, and filter out empty rows & day/date divider rows
+    const validRows: Record<string, string>[] = [];
+
+    parsedData.slice(1).forEach((rowValues) => {
+      const rowObj: Record<string, string> = {};
       columnHeaders.forEach((header, colIndex) => {
-        rowObj[header] = (rowValues[colIndex] || '').trim() || '-';
+        rowObj[header] = (rowValues[colIndex] || '').trim();
       });
-      return rowObj;
-    }).filter((row) => {
-      // Exclude completely empty rows
-      return columnHeaders.some((header) => row[header] && row[header] !== '-');
+
+      const marketer = rowObj['Marketer Name'] || '';
+      const consultant = rowObj['Consultant Name'] || '';
+      const position = rowObj['Position'] || '';
+      const client = rowObj['Client'] || '';
+      const date = rowObj['Date'] || '';
+
+      // Ignore if all main submission data fields are empty (blank rows or divider rows)
+      if (!marketer && !consultant && !position && !client) {
+        return;
+      }
+
+      // Ignore day/date divider rows (e.g. "Thu, 16 July 2026", "Fri, 17 July 2026", "Mon, 20 July 2026")
+      if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/i.test(date) && (!consultant || !position)) {
+        return;
+      }
+
+      // Format empty cells as '-' for clean table presentation
+      columnHeaders.forEach((header) => {
+        if (!rowObj[header]) {
+          rowObj[header] = '-';
+        }
+      });
+
+      rowObj.id = `sheet-row-${validRows.length + 1}`;
+      validRows.push(rowObj);
     });
 
     return NextResponse.json({
       configured: true,
       columnHeaders,
-      rows,
-      totalRows: rows.length,
+      rows: validRows,
+      totalRows: validRows.length,
       lastSynced: new Date().toISOString(),
     });
   } catch (error: any) {
