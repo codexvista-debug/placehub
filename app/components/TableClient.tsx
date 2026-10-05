@@ -215,7 +215,7 @@ export default function TableClient({
     const interval = setInterval(async () => {
       if (editingCell) return;
       try {
-        const res = await fetch('/api/fetch-placements');
+        const res = await fetch('/api/fetch-placements', { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json();
           if (json.placements && Array.isArray(json.placements)) {

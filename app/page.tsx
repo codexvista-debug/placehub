@@ -2,7 +2,8 @@ import React from 'react';
 import { Client } from '@notionhq/client';
 import TableClient from './components/TableClient';
 
-export const revalidate = 15; // 15-second ISR cache for instantaneous header navigation while client polls every 6s
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function extractPropValue(prop: any) {
   if (!prop) return '-';

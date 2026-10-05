@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { Client } from '@notionhq/client';
 
 export async function POST(request: Request) {
@@ -114,6 +115,13 @@ export async function POST(request: Request) {
         [propertyName]: propertyPayload,
       },
     });
+
+    try {
+      revalidatePath('/', 'page');
+      revalidatePath('/api/fetch-placements');
+    } catch (e) {
+      console.warn('Revalidation warning:', e);
+    }
 
     return NextResponse.json({ success: true, resolvedType });
   } catch (error: any) {

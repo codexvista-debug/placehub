@@ -226,18 +226,16 @@ export default function InterviewDocket({ data, columnHeaders, onSelectRow }: In
   const todayInterviews = useMemo(() => parsedInterviews.filter((i) => i.dayType === 'today'), [parsedInterviews]);
   const tomorrowInterviews = useMemo(() => parsedInterviews.filter((i) => i.dayType === 'tomorrow'), [parsedInterviews]);
 
-  // Primary active list for Today + Tomorrow
+  // Primary active list: strictly Today + Tomorrow
   const todayTomorrowList = useMemo(() => [...todayInterviews, ...tomorrowInterviews], [todayInterviews, tomorrowInterviews]);
 
-  // Fallback to latest / upcoming if 0 today & tomorrow (e.g. historical data or weekend)
+  // Strictly show Today and Tomorrow by default - never fallback to past months
   const displayList = useMemo(() => {
-    if (viewScope === 'all_active' || todayTomorrowList.length === 0) {
-      // Pick upcoming, or if none upcoming, the latest 6 active interviews
-      const upcoming = parsedInterviews.filter((i) => i.timestamp >= currentTime.getTime() - 24 * 3600 * 1000);
-      return upcoming.length > 0 ? upcoming.slice(0, 8) : parsedInterviews.slice(-6).reverse();
+    if (viewScope === 'all_active') {
+      return parsedInterviews.slice(0, 8);
     }
     return todayTomorrowList;
-  }, [viewScope, todayTomorrowList, parsedInterviews, currentTime]);
+  }, [viewScope, todayTomorrowList, parsedInterviews]);
 
   // Render dismissed collapsed banner
   if (isDismissed) {
@@ -314,10 +312,15 @@ export default function InterviewDocket({ data, columnHeaders, onSelectRow }: In
         </div>
       </div>
 
-      {/* Cards Strip: Horizontal scrollable on small screens, responsive grid on large */}
+      {/* Cards Strip */}
       {displayList.length === 0 ? (
-        <div className="py-4 text-center text-xs font-semibold text-slate-600 bg-white/70 rounded-lg border border-amber-200">
-          No interviews scheduled for Today or Tomorrow.
+        <div className="py-5 px-4 text-center rounded-xl bg-white/80 border border-amber-200 shadow-2xs flex flex-col items-center justify-center gap-1">
+          <p className="text-xs font-bold text-slate-800">
+            📅 No interviews scheduled for Today ({new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(currentTime)}) or Tomorrow ({new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(currentTime.getTime() + 86400000))})
+          </p>
+          <p className="text-[11px] text-slate-600">
+            Any interview scheduled for Today or Tomorrow in the table will automatically appear here with real-time countdowns and support details.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">

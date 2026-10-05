@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { Client } from '@notionhq/client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 function extractPropValue(prop: any) {
   if (!prop) return '-';
   switch (prop.type) {
@@ -96,7 +99,14 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ placements, columnHeaders });
+    return NextResponse.json(
+      { placements, columnHeaders },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
