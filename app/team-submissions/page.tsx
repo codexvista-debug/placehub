@@ -130,6 +130,10 @@ export default function TeamSubmissionsPage() {
   const [selectedMarketerFilter, setSelectedMarketerFilter] = useState<string>('all');
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('all');
   const [selectedDossierRecruiter, setSelectedDossierRecruiter] = useState<string | null>(null);
+  const [dossierMonthFilter, setDossierMonthFilter] = useState<string>('all');
+  const [dossierSearch, setDossierSearch] = useState<string>('');
+  const [dossierPage, setDossierPage] = useState<number>(1);
+  const dossierRowsPerPage = 10;
 
   // Table specific state
   const [globalSearch, setGlobalSearch] = useState('');
@@ -479,6 +483,10 @@ export default function TeamSubmissionsPage() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 6);
 
+      const allRecruiterRows = rawRows.filter(
+        (r) => normalizeName(r['Marketer Name']) === dossierTarget
+      );
+
       dossierData = {
         name: dossierTarget,
         total: targetRecruiterObj.total,
@@ -487,6 +495,7 @@ export default function TeamSubmissionsPage() {
         topConsultants,
         topClients,
         topPositions,
+        allRecruiterRows,
       };
     }
 
@@ -605,6 +614,29 @@ export default function TeamSubmissionsPage() {
       dossierData,
     };
   }, [sheetData.rows, selectedMarketerFilter, selectedMonthFilter, selectedDossierRecruiter]);
+
+  // Dossier Submissions Filtering & Pagination
+  const dossierFilteredRows = useMemo(() => {
+    if (!analytics.dossierData?.allRecruiterRows) return [];
+    let rows = analytics.dossierData.allRecruiterRows;
+
+    if (dossierMonthFilter !== 'all') {
+      rows = rows.filter((r) => extractMonthLabel(r['Date']) === dossierMonthFilter);
+    }
+
+    if (dossierSearch.trim()) {
+      const q = dossierSearch.toLowerCase();
+      rows = rows.filter((r) =>
+        Object.values(r).some((v) => String(v).toLowerCase().includes(q))
+      );
+    }
+
+    return rows;
+  }, [analytics.dossierData?.allRecruiterRows, dossierMonthFilter, dossierSearch]);
+
+  const dossierTotalPages = Math.ceil(dossierFilteredRows.length / dossierRowsPerPage);
+  const dossierStartIndex = (dossierPage - 1) * dossierRowsPerPage;
+  const dossierCurrentRows = dossierFilteredRows.slice(dossierStartIndex, dossierStartIndex + dossierRowsPerPage);
 
   return (
     <div className="min-h-screen theme-bg theme-text-body p-2 sm:p-4 font-[family-name:var(--font-geist-sans)]">
@@ -1214,19 +1246,30 @@ export default function TeamSubmissionsPage() {
                             return (
                               <td
                                 key={mo}
+                                onClick={() => {
+                                  if (count > 0) {
+                                    setSelectedDossierRecruiter(rec.name);
+                                    setDossierMonthFilter(mo);
+                                    setDossierPage(1);
+                                    document.getElementById('recruiter-dossier-section')?.scrollIntoView({ behavior: 'smooth' });
+                                  }
+                                }}
                                 className={`px-3 py-2.5 text-center font-mono border-r theme-border tabular-nums ${
+                                  count > 0 ? 'cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors' : ''
+                                } ${
                                   selectedMonthFilter === mo ? 'bg-amber-400/10' : ''
                                 }`}
+                                title={count > 0 ? `Click to inspect ${rec.name}'s ${count} submissions in ${mo}` : undefined}
                               >
                                 {count === 0 ? (
                                   <span className="opacity-30 text-[11px]">-</span>
                                 ) : isTopInMonth ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[11px] bg-amber-100 text-amber-950 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700 shadow-2xs">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[11px] bg-amber-100 text-amber-950 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700 shadow-2xs hover:scale-105 transition-transform">
                                     <span>👑</span>
                                     <span>{count}</span>
                                   </span>
                                 ) : (
-                                  <span className="font-bold text-[11px] theme-text">
+                                  <span className="font-bold text-[11px] theme-text hover:underline">
                                     {count}
                                   </span>
                                 )}
@@ -1262,6 +1305,8 @@ export default function TeamSubmissionsPage() {
                             <button
                               onClick={() => {
                                 setSelectedDossierRecruiter(rec.name);
+                                setDossierMonthFilter('all');
+                                setDossierPage(1);
                                 document.getElementById('recruiter-dossier-section')?.scrollIntoView({ behavior: 'smooth' });
                               }}
                               className="px-2.5 py-1 rounded-md text-[11px] font-bold theme-btn hover:opacity-90 transition-opacity cursor-pointer shadow-2xs"
@@ -1461,6 +1506,198 @@ export default function TeamSubmissionsPage() {
 
                   </div>
 
+                </div>
+
+                {/* Dossier Actual Submissions Table Section */}
+                <div className="pt-4 border-t theme-border flex flex-col gap-3">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h4 className="text-xs font-bold theme-text uppercase tracking-wider flex items-center gap-1.5">
+                        <span>📋</span> {analytics.dossierData.name}&apos;s Submissions Log
+                      </h4>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full theme-surface-alt border theme-border theme-text">
+                        {dossierFilteredRows.length} {dossierFilteredRows.length === 1 ? 'submission' : 'submissions'}
+                      </span>
+                      {dossierMonthFilter !== 'all' && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-100 text-amber-950 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                          Month: {dossierMonthFilter}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Search box inside this recruiter's records */}
+                      <div className="relative min-w-[200px] max-w-xs">
+                        <input
+                          type="text"
+                          placeholder={`Search ${analytics.dossierData.name}'s rows...`}
+                          value={dossierSearch}
+                          onChange={(e) => {
+                            setDossierSearch(e.target.value);
+                            setDossierPage(1);
+                          }}
+                          className="w-full px-3 py-1 border rounded-md text-xs focus:outline-none theme-input theme-border shadow-2xs"
+                        />
+                        {dossierSearch && (
+                          <button
+                            onClick={() => {
+                              setDossierSearch('');
+                              setDossierPage(1);
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 theme-text-muted hover:theme-text text-xs font-bold cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Jump to Full Table View */}
+                      <button
+                        onClick={() => {
+                          setViewMode('table');
+                          setColumnSelectedValues({ ['Marketer Name']: [analytics.dossierData!.name] });
+                        }}
+                        className="px-2.5 py-1 rounded-md text-[11px] font-bold border theme-surface theme-border theme-text hover:theme-surface-alt transition-colors cursor-pointer shadow-2xs"
+                        title={`Open all ${analytics.dossierData.name} rows in main table`}
+                      >
+                        View in Full Table ↗
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Interactive Month Filter Tabs */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <button
+                      onClick={() => {
+                        setDossierMonthFilter('all');
+                        setDossierPage(1);
+                      }}
+                      className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer whitespace-nowrap text-xs ${
+                        dossierMonthFilter === 'all'
+                          ? 'theme-btn shadow-2xs'
+                          : 'theme-surface-alt theme-border border theme-text-muted hover:theme-text'
+                      }`}
+                    >
+                      All Months ({analytics.dossierData.total})
+                    </button>
+                    {analytics.dossierData.monthlyBars
+                      .filter((b) => b.count > 0)
+                      .map((b) => (
+                        <button
+                          key={b.month}
+                          onClick={() => {
+                            setDossierMonthFilter(b.month);
+                            setDossierPage(1);
+                          }}
+                          className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer whitespace-nowrap text-xs ${
+                            dossierMonthFilter === b.month
+                              ? 'theme-btn shadow-2xs'
+                              : 'theme-surface-alt theme-border border theme-text-muted hover:theme-text'
+                          }`}
+                        >
+                          {b.month} ({b.count})
+                        </button>
+                      ))}
+                  </div>
+
+                  {/* The Actual Table of Submission Rows */}
+                  <div className="overflow-x-auto rounded-lg border theme-border theme-surface shadow-2xs max-h-[460px]">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="theme-table-head sticky top-0 z-10 border-b theme-border">
+                        <tr>
+                          <th className="px-3 py-2 font-bold w-12 text-center border-r theme-border select-none">
+                            #
+                          </th>
+                          {sheetData.columnHeaders
+                            .filter((h) => !h.toLowerCase().includes('marketer'))
+                            .map((header) => (
+                              <th
+                                key={header}
+                                className="px-3 py-2 font-bold select-none whitespace-normal break-words max-w-[170px] border-r last:border-r-0 theme-border"
+                              >
+                                {header}
+                              </th>
+                            ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y theme-border">
+                        {dossierCurrentRows.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={sheetData.columnHeaders.length + 1}
+                              className="py-8 text-center theme-text-muted italic"
+                            >
+                              No submission rows found for {analytics.dossierData.name} matching your search or month filter.
+                            </td>
+                          </tr>
+                        ) : (
+                          dossierCurrentRows.map((row, idx) => {
+                            const rowIndex = dossierStartIndex + idx + 1;
+                            const isEven = idx % 2 === 0;
+
+                            return (
+                              <tr
+                                key={row.id || idx}
+                                className={`transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${
+                                  isEven ? 'theme-surface' : 'theme-surface-alt'
+                                }`}
+                              >
+                                <td className="px-2.5 py-2 text-center font-mono font-bold text-[11px] border-r theme-border theme-text-muted">
+                                  {rowIndex}
+                                </td>
+                                {sheetData.columnHeaders
+                                  .filter((h) => !h.toLowerCase().includes('marketer'))
+                                  .map((header) => {
+                                    const val = row[header] || '-';
+                                    return (
+                                      <td
+                                        key={header}
+                                        className="px-2.5 py-2 border-r last:border-r-0 whitespace-normal break-words max-w-[200px] min-w-[120px] leading-snug align-top"
+                                        style={{
+                                          borderColor: 'var(--color-table-border)',
+                                          color: 'var(--color-text-body)',
+                                        }}
+                                      >
+                                        <CellBadge header={header} value={val} />
+                                      </td>
+                                    );
+                                  })}
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Dossier Table Pagination */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs theme-text-muted">
+                    <span className="text-[11px]">
+                      Showing <strong className="theme-text">{dossierFilteredRows.length === 0 ? 0 : dossierStartIndex + 1}</strong>–
+                      <strong className="theme-text">{Math.min(dossierStartIndex + dossierRowsPerPage, dossierFilteredRows.length)}</strong> of{' '}
+                      <strong className="theme-text">{dossierFilteredRows.length}</strong> {analytics.dossierData.name} submissions
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setDossierPage((p) => Math.max(1, p - 1))}
+                        disabled={dossierPage === 1}
+                        className="px-2.5 py-1 rounded border text-xs font-semibold shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors theme-surface theme-border theme-text"
+                      >
+                        ← Prev
+                      </button>
+                      <span className="px-2 py-0.5 rounded border text-xs font-bold theme-surface-alt theme-border theme-text">
+                        {dossierTotalPages === 0 ? 0 : dossierPage} / {dossierTotalPages}
+                      </span>
+                      <button
+                        onClick={() => setDossierPage((p) => Math.min(dossierTotalPages, p + 1))}
+                        disabled={dossierPage >= dossierTotalPages || dossierTotalPages === 0}
+                        className="px-2.5 py-1 rounded border text-xs font-semibold shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors theme-surface theme-border theme-text"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
