@@ -464,11 +464,11 @@ export default function TeamSubmissionsPage() {
       })
       .sort((a, b) => b.total - a.total);
 
-    // Active recruiter dossier (for deep-dive)
-    const dossierTarget = selectedDossierRecruiter || (selectedMarketerFilter !== 'all' ? selectedMarketerFilter : recruiterMonthlyMatrix[0]?.name);
-    const targetRecruiterObj = recruiterMatrixMap[dossierTarget || ''];
+    // Active recruiter dossier (for deep-dive) - ONLY when explicitly selected by user
+    const dossierTarget = selectedDossierRecruiter;
+    const targetRecruiterObj = dossierTarget ? recruiterMatrixMap[dossierTarget] : null;
     let dossierData = null;
-    if (targetRecruiterObj) {
+    if (targetRecruiterObj && dossierTarget) {
       const monthlyBars = sortedAllMonths.map((mo) => ({
         month: mo,
         count: targetRecruiterObj.monthlyCounts[mo] || 0,
@@ -1309,14 +1309,24 @@ export default function TeamSubmissionsPage() {
                           <td className="px-3 py-2.5 text-center">
                             <button
                               onClick={() => {
-                                setSelectedDossierRecruiter(rec.name);
-                                setDossierMonthFilter('all');
-                                setDossierPage(1);
-                                document.getElementById('recruiter-dossier-section')?.scrollIntoView({ behavior: 'smooth' });
+                                if (isSelectedDossier) {
+                                  setSelectedDossierRecruiter(null);
+                                } else {
+                                  setSelectedDossierRecruiter(rec.name);
+                                  setDossierMonthFilter('all');
+                                  setDossierPage(1);
+                                  setTimeout(() => {
+                                    document.getElementById('recruiter-dossier-section')?.scrollIntoView({ behavior: 'smooth' });
+                                  }, 50);
+                                }
                               }}
-                              className="px-2.5 py-1 rounded-md text-[11px] font-bold theme-btn hover:opacity-90 transition-opacity cursor-pointer shadow-2xs"
+                              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer shadow-2xs ${
+                                isSelectedDossier
+                                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                                  : 'theme-btn hover:opacity-90'
+                              }`}
                             >
-                              🔍 Inspect
+                              {isSelectedDossier ? '✕ Close' : '🔍 Inspect'}
                             </button>
                           </td>
                         </tr>
@@ -1393,8 +1403,8 @@ export default function TeamSubmissionsPage() {
                     </div>
                   </div>
 
-                  {/* Quick Switcher among recruiters */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Quick Switcher among recruiters & Close button */}
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] font-bold theme-text-muted">Switch Recruiter:</span>
                     <select
                       value={analytics.dossierData.name}
@@ -1405,6 +1415,14 @@ export default function TeamSubmissionsPage() {
                         <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDossierRecruiter(null)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-800 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                      title="Close Dossier"
+                    >
+                      ✕ Close
+                    </button>
                   </div>
                 </div>
 
