@@ -67,24 +67,30 @@ export default function Header() {
         <div className="flex items-center justify-between h-14">
 
           {/* Logo */}
-          <div className="flex items-center gap-3 shrink-0">
+          <Link
+            href="/"
+            prefetch={true}
+            className="flex items-center gap-2.5 shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+            title="Go to Live Table"
+          >
             <div
-              className="w-8 h-8 rounded-lg font-black text-sm flex items-center justify-center shadow-sm transition-colors"
+              className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-colors"
               style={{
                 backgroundColor: 'var(--color-header-logo-bg)',
                 color: '#ffffff',
               }}
             >
-              P
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 14c-2.76 0-5 1.79-5 4 0 1.66 1.34 3 3 3h4c1.66 0 3-1.34 3-3 0-2.21-2.24-4-5-4zm-6.5-3c-1.38 0-2.5 1.12-2.5 2.5S4.12 16 5.5 16 8 14.88 8 13.5 6.88 11 5.5 11zm13 0c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zm-11-5C6.12 3 5 4.12 5 5.5S6.12 8 7.5 8 10 6.88 10 5.5 8.88 3 7.5 3zm10 0C16.12 3 15 4.12 15 5.5S16.12 8 17.5 8 19 6.88 19 5.5 17.88 3 16.5 3z"/>
+              </svg>
             </div>
-            <Link
-              href="/"
-              className="text-base sm:text-lg font-bold tracking-tight hover:opacity-90 transition-opacity"
+            <span
+              className="text-base sm:text-lg font-bold tracking-tight"
               style={{ color: 'var(--color-header-text)' }}
             >
-              PlaceRover
-            </Link>
-          </div>
+              RemoteTiger
+            </span>
+          </Link>
 
           {/* Navigation */}
           <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-1">

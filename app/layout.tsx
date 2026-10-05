@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PlaceRover",
+  title: "RemoteTiger",
   description: "Manage your project placements with Notion",
 };
 

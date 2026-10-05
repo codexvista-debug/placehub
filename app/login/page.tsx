@@ -56,7 +56,7 @@ function LoginFormContent() {
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight theme-text">
-            PlaceRover Access
+            RemoteTiger Access
           </h1>
           <p className="text-xs sm:text-sm theme-text-muted mt-1">
             Private placement portal for Sayan &amp; team. Enter your shared secret passcode to continue.

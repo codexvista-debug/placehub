@@ -187,7 +187,7 @@ export default function SettingsPage() {
                 <span>🎨</span> Workspace Theme
               </h2>
               <p className="text-xs theme-text-muted mt-0.5">
-                Select a modern light theme to personalize your navigation, headers, and table colors across PlaceRover.
+                Select a modern light theme to personalize your navigation, headers, and table colors across RemoteTiger.
               </p>
             </div>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full theme-surface-alt theme-border border theme-text-muted">
@@ -218,12 +218,14 @@ export default function SettingsPage() {
                     }}
                   >
                     <div
-                      className="w-5 h-5 rounded font-black text-[10px] flex items-center justify-center shadow-2xs"
+                      className="w-5 h-5 rounded flex items-center justify-center shadow-2xs"
                       style={{ backgroundColor: t.accentColor, color: t.accentText }}
                     >
-                      P
+                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 14c-2.76 0-5 1.79-5 4 0 1.66 1.34 3 3 3h4c1.66 0 3-1.34 3-3 0-2.21-2.24-4-5-4zm-6.5-3c-1.38 0-2.5 1.12-2.5 2.5S4.12 16 5.5 16 8 14.88 8 13.5 6.88 11 5.5 11zm13 0c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zm-11-5C6.12 3 5 4.12 5 5.5S6.12 8 7.5 8 10 6.88 10 5.5 8.88 3 7.5 3zm10 0C16.12 3 15 4.12 15 5.5S16.12 8 17.5 8 19 6.88 19 5.5 17.88 3 16.5 3z"/>
+                      </svg>
                     </div>
-                    <span className="text-[11px] font-bold tracking-tight">PlaceRover</span>
+                    <span className="text-[11px] font-bold tracking-tight">RemoteTiger</span>
                     <div className="ml-auto flex gap-1">
                       {['Table', 'Metrics'].map((label, idx) => (
                         <span

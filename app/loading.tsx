@@ -65,7 +65,7 @@ export default function Loading() {
         {/* Bottom Loading Indicator */}
         <div className="flex items-center justify-center gap-2 py-4 text-xs font-semibold theme-text-muted">
           <div className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin theme-border border-t-[var(--color-accent)]"></div>
-          <span>Loading PlaceRover Live Table...</span>
+          <span>Loading RemoteTiger Live Table...</span>
         </div>
       </main>
     </div>
