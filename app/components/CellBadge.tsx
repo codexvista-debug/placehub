@@ -178,9 +178,17 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
   }
 
   // 9. EMAIL / PHONE
-  if (h.includes('email') || h.includes('phone')) {
+  if (h.includes('phone')) {
     return (
-      <span className="font-mono text-[11px] font-medium text-slate-700 select-all break-all">
+      <span className="font-mono text-[11px] font-medium text-slate-700 select-all break-words leading-tight block max-w-full">
+        {value}
+      </span>
+    );
+  }
+
+  if (h.includes('email')) {
+    return (
+      <span className="font-mono text-[11px] font-medium text-slate-700 select-all break-all leading-tight block max-w-full">
         {value}
       </span>
     );
@@ -190,7 +198,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
   if (h.includes('update') || h.includes('note') || h.includes('comment')) {
     return (
       <div
-        className="text-xs leading-relaxed text-slate-800 pl-2.5 border-l-2 py-0.5 break-words"
+        className="text-xs leading-relaxed text-slate-800 pl-2.5 border-l-2 py-0.5 break-words whitespace-normal max-w-full"
         style={{ borderColor: 'var(--color-accent)' }}
       >
         {value}

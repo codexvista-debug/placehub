@@ -134,20 +134,20 @@ function getField(row: Record<string, string>, searchKeys: string[]): string {
 
 function getColumnWidthClass(header: string): string {
   const h = header.toLowerCase();
-  if (h === 'date') return 'min-w-[110px] max-w-[130px] whitespace-nowrap';
-  if (h.includes('time')) return 'min-w-[190px] max-w-[280px]';
-  if (h.includes('consultant') || h.includes('candidate')) return 'min-w-[180px] max-w-[260px]';
-  if (h.includes('position') || h.includes('role')) return 'min-w-[210px] max-w-[340px]';
-  if (h.includes('vendor') || h.includes('client')) return 'min-w-[130px] max-w-[190px]';
-  if (h.includes('status')) return 'min-w-[130px] max-w-[180px] whitespace-nowrap';
-  if (h.includes('marketer')) return 'min-w-[125px] max-w-[160px]';
-  if (h.includes('support')) return 'min-w-[115px] max-w-[150px]';
-  if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) return 'min-w-[145px] max-w-[190px]';
-  if (h.includes('email')) return 'min-w-[190px] max-w-[260px]';
-  if (h.includes('phone')) return 'min-w-[125px] max-w-[160px] whitespace-nowrap';
-  if (h.includes('rate') || h.includes('price')) return 'min-w-[100px] max-w-[130px] whitespace-nowrap';
-  if (h.includes('update') || h.includes('notes')) return 'min-w-[260px] max-w-[480px]';
-  return 'min-w-[130px] max-w-[220px]';
+  if (h === 'date') return 'w-[115px] min-w-[110px] max-w-[125px] whitespace-nowrap';
+  if (h.includes('time')) return 'w-[190px] min-w-[170px] max-w-[240px]';
+  if (h.includes('consultant') || h.includes('candidate')) return 'w-[180px] min-w-[160px] max-w-[230px]';
+  if (h.includes('position') || h.includes('role')) return 'w-[220px] min-w-[190px] max-w-[280px]';
+  if (h.includes('vendor') || h.includes('client')) return 'w-[130px] min-w-[115px] max-w-[160px]';
+  if (h.includes('status')) return 'w-[140px] min-w-[125px] max-w-[170px]';
+  if (h.includes('marketer')) return 'w-[120px] min-w-[110px] max-w-[140px]';
+  if (h.includes('support')) return 'w-[120px] min-w-[105px] max-w-[140px]';
+  if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) return 'w-[150px] min-w-[130px] max-w-[180px]';
+  if (h.includes('email')) return 'w-[190px] min-w-[165px] max-w-[230px]';
+  if (h.includes('phone')) return 'w-[170px] min-w-[150px] max-w-[220px]';
+  if (h.includes('rate') || h.includes('price')) return 'w-[110px] min-w-[95px] max-w-[130px] whitespace-nowrap';
+  if (h.includes('update') || h.includes('notes')) return 'w-[320px] min-w-[260px] max-w-[420px]';
+  return 'w-[140px] min-w-[120px] max-w-[190px]';
 }
 
 export default function TableClient({
@@ -964,7 +964,7 @@ export default function TableClient({
             className="w-full overflow-x-auto rounded-lg shadow-xs min-h-[450px] border theme-table-border"
             style={{ backgroundColor: 'var(--color-table-row-odd)' }}
           >
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="min-w-full text-left text-xs border-collapse table-auto">
               <thead
                 className="theme-table-head sticky top-0 z-30 border-b theme-table-border"
               >
@@ -1211,7 +1211,7 @@ export default function TableClient({
                                   onCancel={() => setEditingCell(null)}
                                 />
                               )}
-                              <div className={`flex flex-col gap-1 items-start justify-between min-h-[24px] ${isEditing ? 'opacity-25 pointer-events-none' : ''}`}>
+                              <div className={`flex flex-col gap-1 items-start justify-between min-h-[24px] w-full max-w-full overflow-hidden ${isEditing ? 'opacity-25 pointer-events-none' : ''}`}>
                                 {colIndex === 0 && isNewRow && (
                                   <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wide shadow-2xs">
                                     ✨ New Row
