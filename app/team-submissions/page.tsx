@@ -79,6 +79,18 @@ function extractMonthLabel(str: string): string {
   return 'Other';
 }
 
+const monthOrder = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+function compareMonths(a: string, b: string): number {
+  const [mA, yA] = a.split(' ');
+  const [mB, yB] = b.split(' ');
+  if (yA !== yB) return (parseInt(yA) || 0) - (parseInt(yB) || 0);
+  return monthOrder.indexOf(mA) - monthOrder.indexOf(mB);
+}
+
 // Smart Numerical Parser for rates/amounts ($55.00, 60, etc.)
 function parseNumericValue(str: string): number | null {
   if (!str || str === '-') return null;
@@ -90,12 +102,18 @@ function parseNumericValue(str: string): number | null {
 
 // Normalize name casing for cleaner aggregations (e.g. 'sravani' -> 'Sravani')
 function normalizeName(name: string): string {
-  if (!name || name === '-') return 'Unknown';
+  if (!name || name === '-' || name.trim() === '') return 'Unknown';
   const trimmed = name.trim();
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
-
+function getInitials(name: string): string {
+  if (!name || name === '-') return '';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
 
 export default function TeamSubmissionsPage() {
   const [sheetData, setSheetData] = useState<SheetData>({
@@ -108,8 +126,10 @@ export default function TeamSubmissionsPage() {
   // View Mode: 'metrics' (default) vs 'table'
   const [viewMode, setViewMode] = useState<'table' | 'metrics'>('metrics');
 
-  // Metrics specific filter (e.g. filter metrics by a specific marketer or all)
+  // Metrics specific filters
   const [selectedMarketerFilter, setSelectedMarketerFilter] = useState<string>('all');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('all');
+  const [selectedDossierRecruiter, setSelectedDossierRecruiter] = useState<string | null>(null);
 
   // Table specific state
   const [globalSearch, setGlobalSearch] = useState('');
@@ -286,7 +306,7 @@ export default function TeamSubmissionsPage() {
     Boolean(columnSelectedValues[header]?.length);
 
   // ==========================================
-  // METRICS & ANALYTICS COMPUTATIONS
+  // IN-DEPTH METRICS & RECRUITER MONTHLY COMPUTATIONS
   // ==========================================
   const analytics = useMemo(() => {
     const rawRows = sheetData.rows;
@@ -298,40 +318,185 @@ export default function TeamSubmissionsPage() {
         topClient: { name: 'None', count: 0 },
         marketerLeaderboard: [],
         monthlyTrend: [],
+        maxMonthCount: 1,
         consultantLeaderboard: [],
         topClients: [],
         topPositions: [],
         marketerNames: [],
+        allMonthsList: [],
+        recruiterMonthlyMatrix: [],
+        activeMonthsHeaders: [],
+        teamMonthlyTotals: {},
+        topRecruiterPerMonth: {},
+        dossierData: null,
       };
     }
 
-    // Filter by marketer if selected
-    const activeRows = selectedMarketerFilter === 'all'
-      ? rawRows
-      : rawRows.filter((r) => normalizeName(r['Marketer Name']) === selectedMarketerFilter);
+    // List of all distinct months present in the entire raw dataset
+    const allMonthsSet = new Set<string>();
+    const allMarketersSet = new Set<string>();
+
+    rawRows.forEach((r) => {
+      const mName = normalizeName(r['Marketer Name']);
+      if (mName && mName !== 'Unknown') allMarketersSet.add(mName);
+      const mLabel = extractMonthLabel(r['Date']);
+      if (mLabel && mLabel !== 'Other' && mLabel !== 'Unspecified') {
+        allMonthsSet.add(mLabel);
+      }
+    });
+
+    const sortedAllMonths = Array.from(allMonthsSet).sort(compareMonths);
+
+    // Apply global filters (Marketer Filter & Month Filter)
+    const activeRows = rawRows.filter((r) => {
+      const marketer = normalizeName(r['Marketer Name']);
+      const month = extractMonthLabel(r['Date']);
+      const matchMarketer = selectedMarketerFilter === 'all' || marketer === selectedMarketerFilter;
+      const matchMonth = selectedMonthFilter === 'all' || month === selectedMonthFilter;
+      return matchMarketer && matchMonth;
+    });
 
     const totalSubmissions = activeRows.length;
 
-    // Aggregation maps
+    // Full Recruiter x Month Matrix (Computed from rawRows so matrix always shows full month-by-month grid)
+    const recruiterMatrixMap: Record<string, {
+      name: string;
+      monthlyCounts: Record<string, number>;
+      total: number;
+      consultants: Record<string, number>;
+      clients: Record<string, number>;
+      positions: Record<string, number>;
+    }> = {};
+
+    Array.from(allMarketersSet).forEach((m) => {
+      recruiterMatrixMap[m] = {
+        name: m,
+        monthlyCounts: {},
+        total: 0,
+        consultants: {},
+        clients: {},
+        positions: {},
+      };
+      sortedAllMonths.forEach((mo) => {
+        recruiterMatrixMap[m].monthlyCounts[mo] = 0;
+      });
+    });
+
+    const teamMonthlyTotals: Record<string, number> = {};
+    sortedAllMonths.forEach((mo) => { teamMonthlyTotals[mo] = 0; });
+
+    rawRows.forEach((r) => {
+      const mName = normalizeName(r['Marketer Name']);
+      const cName = normalizeName(r['Consultant Name']);
+      const client = (r['Client'] || '').trim();
+      const pos = (r['Position'] || '').trim();
+      const mo = extractMonthLabel(r['Date']);
+
+      if (mName && mName !== 'Unknown' && recruiterMatrixMap[mName]) {
+        recruiterMatrixMap[mName].total += 1;
+        if (sortedAllMonths.includes(mo)) {
+          recruiterMatrixMap[mName].monthlyCounts[mo] = (recruiterMatrixMap[mName].monthlyCounts[mo] || 0) + 1;
+          teamMonthlyTotals[mo] = (teamMonthlyTotals[mo] || 0) + 1;
+        }
+        if (cName && cName !== 'Unknown') {
+          recruiterMatrixMap[mName].consultants[cName] = (recruiterMatrixMap[mName].consultants[cName] || 0) + 1;
+        }
+        if (client && client !== '-') {
+          recruiterMatrixMap[mName].clients[client] = (recruiterMatrixMap[mName].clients[client] || 0) + 1;
+        }
+        if (pos && pos !== '-') {
+          recruiterMatrixMap[mName].positions[pos] = (recruiterMatrixMap[mName].positions[pos] || 0) + 1;
+        }
+      }
+    });
+
+    // Find top recruiter per month
+    const topRecruiterPerMonth: Record<string, { name: string; count: number }> = {};
+    sortedAllMonths.forEach((mo) => {
+      let topCount = 0;
+      let topName = 'None';
+      Object.values(recruiterMatrixMap).forEach((rec) => {
+        const count = rec.monthlyCounts[mo] || 0;
+        if (count > topCount) {
+          topCount = count;
+          topName = rec.name;
+        }
+      });
+      topRecruiterPerMonth[mo] = { name: topName, count: topCount };
+    });
+
+    // Format recruiter matrix rows
+    const recruiterMonthlyMatrix = Object.values(recruiterMatrixMap)
+      .map((rec) => {
+        const activeMonths = Object.values(rec.monthlyCounts).filter((c) => c > 0).length;
+        const avgPerMonth = activeMonths > 0 ? (rec.total / activeMonths).toFixed(1) : '0';
+        
+        let peakMonthName = 'N/A';
+        let peakMonthCount = 0;
+        Object.entries(rec.monthlyCounts).forEach(([m, count]) => {
+          if (count > peakMonthCount) {
+            peakMonthCount = count;
+            peakMonthName = m;
+          }
+        });
+
+        const topCons = Object.entries(rec.consultants).sort((a, b) => b[1] - a[1])[0];
+        const topClient = Object.entries(rec.clients).sort((a, b) => b[1] - a[1])[0];
+
+        return {
+          name: rec.name,
+          monthlyCounts: rec.monthlyCounts,
+          total: rec.total,
+          activeMonths,
+          avgPerMonth,
+          peakMonth: { month: peakMonthName, count: peakMonthCount },
+          topConsultant: topCons ? `${topCons[0]} (${topCons[1]})` : 'Various',
+          topClient: topClient ? `${topClient[0]} (${topClient[1]})` : 'Various',
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    // Active recruiter dossier (for deep-dive)
+    const dossierTarget = selectedDossierRecruiter || (selectedMarketerFilter !== 'all' ? selectedMarketerFilter : recruiterMonthlyMatrix[0]?.name);
+    const targetRecruiterObj = recruiterMatrixMap[dossierTarget || ''];
+    let dossierData = null;
+    if (targetRecruiterObj) {
+      const monthlyBars = sortedAllMonths.map((mo) => ({
+        month: mo,
+        count: targetRecruiterObj.monthlyCounts[mo] || 0,
+      }));
+      const maxRecMonth = Math.max(...monthlyBars.map((b) => b.count), 1);
+      const topConsultants = Object.entries(targetRecruiterObj.consultants)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6);
+      const topClients = Object.entries(targetRecruiterObj.clients)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6);
+      const topPositions = Object.entries(targetRecruiterObj.positions)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6);
+
+      dossierData = {
+        name: dossierTarget,
+        total: targetRecruiterObj.total,
+        monthlyBars,
+        maxRecMonth,
+        topConsultants,
+        topClients,
+        topPositions,
+      };
+    }
+
+    // Now standard aggregations based on activeRows (for when user filters by marketer or month)
     const marketerMap: Record<string, { count: number; consultants: Record<string, number> }> = {};
     const consultantMap: Record<string, { count: number; positions: Record<string, number>; marketers: Record<string, number> }> = {};
     const clientMap: Record<string, number> = {};
     const positionMap: Record<string, number> = {};
     const monthMap: Record<string, number> = {};
-
-    const chronologicalMonths = [
-      'January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026', 'June 2026',
-      'July 2026', 'August 2026', 'September 2026', 'October 2026', 'November 2026', 'December 2026'
-    ];
-
-    chronologicalMonths.forEach((m) => { monthMap[m] = 0; });
-
-    // All available marketers from full dataset
-    const allMarketersSet = new Set<string>();
-    rawRows.forEach((r) => {
-      const mName = normalizeName(r['Marketer Name']);
-      if (mName && mName !== 'Unknown') allMarketersSet.add(mName);
-    });
+    sortedAllMonths.forEach((m) => { monthMap[m] = 0; });
 
     activeRows.forEach((row) => {
       const marketer = normalizeName(row['Marketer Name']);
@@ -340,7 +505,6 @@ export default function TeamSubmissionsPage() {
       const position = (row['Position'] || '').trim();
       const month = extractMonthLabel(row['Date']);
 
-      // 1. Marketer
       if (!marketerMap[marketer]) {
         marketerMap[marketer] = { count: 0, consultants: {} };
       }
@@ -349,7 +513,6 @@ export default function TeamSubmissionsPage() {
         marketerMap[marketer].consultants[consultant] = (marketerMap[marketer].consultants[consultant] || 0) + 1;
       }
 
-      // 2. Consultant
       if (consultant && consultant !== 'Unknown') {
         if (!consultantMap[consultant]) {
           consultantMap[consultant] = { count: 0, positions: {}, marketers: {} };
@@ -363,28 +526,21 @@ export default function TeamSubmissionsPage() {
         }
       }
 
-      // 3. Client
       if (client && client !== '-') {
         clientMap[client] = (clientMap[client] || 0) + 1;
       }
 
-      // 4. Position
       if (position && position !== '-') {
         positionMap[position] = (positionMap[position] || 0) + 1;
       }
 
-      // 5. Month
       if (monthMap[month] !== undefined) {
         monthMap[month] += 1;
-      } else {
-        monthMap[month] = (monthMap[month] || 0) + 1;
       }
     });
 
-    // Marketer Leaderboard
     const marketerLeaderboard = Object.entries(marketerMap)
       .map(([name, data]) => {
-        // Find their most submitted consultant
         const topConsEntry = Object.entries(data.consultants).sort((a, b) => b[1] - a[1])[0];
         const topConsultant = topConsEntry ? `${topConsEntry[0]} (${topConsEntry[1]})` : 'Various';
         return {
@@ -396,7 +552,6 @@ export default function TeamSubmissionsPage() {
       })
       .sort((a, b) => b.count - a.count);
 
-    // Consultant Leaderboard (Who is getting the most submissions?)
     const consultantLeaderboard = Object.entries(consultantMap)
       .map(([name, data]) => {
         const topPosEntry = Object.entries(data.positions).sort((a, b) => b[1] - a[1])[0];
@@ -413,21 +568,15 @@ export default function TeamSubmissionsPage() {
       })
       .sort((a, b) => b.count - a.count);
 
-    // Monthly Trend
     const monthlyTrend = Object.entries(monthMap)
       .filter(([_, count]) => count > 0)
-      .map(([month, count]) => ({
-        month,
-        count,
-      }));
+      .map(([month, count]) => ({ month, count }));
 
-    // Top Clients
     const topClients = Object.entries(clientMap)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
 
-    // Top Positions
     const topPositions = Object.entries(positionMap)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
@@ -448,8 +597,14 @@ export default function TeamSubmissionsPage() {
       topClients,
       topPositions,
       marketerNames: Array.from(allMarketersSet).sort(),
+      allMonthsList: sortedAllMonths,
+      recruiterMonthlyMatrix,
+      activeMonthsHeaders: sortedAllMonths,
+      teamMonthlyTotals,
+      topRecruiterPerMonth,
+      dossierData,
     };
-  }, [sheetData.rows, selectedMarketerFilter]);
+  }, [sheetData.rows, selectedMarketerFilter, selectedMonthFilter, selectedDossierRecruiter]);
 
   return (
     <div className="min-h-screen theme-bg theme-text-body p-2 sm:p-4 font-[family-name:var(--font-geist-sans)]">
@@ -486,22 +641,61 @@ export default function TeamSubmissionsPage() {
           </div>
 
           {/* Quick Filter / Sync Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {viewMode === 'metrics' && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold theme-text-muted">Filter Marketer:</span>
-                <select
-                  value={selectedMarketerFilter}
-                  onChange={(e) => setSelectedMarketerFilter(e.target.value)}
-                  className="px-2.5 py-1 border rounded-lg text-xs font-bold theme-input theme-border focus:outline-none"
-                >
-                  <option value="all">All Team Members ({analytics.marketerNames.length})</option>
-                  {analytics.marketerNames.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Filter Recruiter / Marketer */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold theme-text-muted">Recruiter:</span>
+                  <select
+                    value={selectedMarketerFilter}
+                    onChange={(e) => {
+                      setSelectedMarketerFilter(e.target.value);
+                      if (e.target.value !== 'all') {
+                        setSelectedDossierRecruiter(e.target.value);
+                      }
+                    }}
+                    className="px-2.5 py-1 border rounded-lg text-xs font-bold theme-input theme-border focus:outline-none"
+                  >
+                    <option value="all">All Recruiters ({analytics.marketerNames.length})</option>
+                    {analytics.marketerNames.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filter Month */}
+                {analytics.allMonthsList.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold theme-text-muted">Month:</span>
+                    <select
+                      value={selectedMonthFilter}
+                      onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                      className="px-2.5 py-1 border rounded-lg text-xs font-bold theme-input theme-border focus:outline-none"
+                    >
+                      <option value="all">All Months (2026)</option>
+                      {analytics.allMonthsList.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {(selectedMarketerFilter !== 'all' || selectedMonthFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSelectedMarketerFilter('all');
+                      setSelectedMonthFilter('all');
+                    }}
+                    className="px-2 py-1 rounded-md text-[11px] font-semibold bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-800 hover:opacity-80 transition-opacity"
+                  >
+                    ✕ Reset Filters
+                  </button>
+                )}
               </div>
             )}
 
@@ -652,7 +846,7 @@ export default function TeamSubmissionsPage() {
                               </button>
                             </div>
 
-                            {/* Column Popover Menu */}
+                            {/* Popover */}
                             {isPopoverOpen && (
                               <div
                                 data-popover="true"
@@ -696,7 +890,9 @@ export default function TeamSubmissionsPage() {
                                             : 'transparent';
                                       }}
                                     >
-                                      {dir === 'asc' ? '⬆️ Sort Ascending (A → Z)' : '⬇️ Sort Descending (Z → A)'}
+                                      {dir === 'asc'
+                                        ? '⬆️ Sort Ascending (A → Z / Oldest)'
+                                        : '⬇️ Sort Descending (Z → A / Newest)'}
                                     </button>
                                   ))}
                                 </div>
@@ -779,7 +975,7 @@ export default function TeamSubmissionsPage() {
                           colSpan={sheetData.columnHeaders.length + 1}
                           className="px-4 py-8 text-center theme-text-muted font-medium"
                         >
-                          No submissions match your search criteria.
+                          No submissions match your search or filter criteria.
                         </td>
                       </tr>
                     ) : (
@@ -842,7 +1038,7 @@ export default function TeamSubmissionsPage() {
         {/* VIEW 2: ANALYTICS & METRICS DASHBOARD                                    */}
         {/* ========================================================================= */}
         {viewMode === 'metrics' && (
-          <div className="flex flex-col gap-5 py-2">
+          <div className="flex flex-col gap-6 py-2">
             
             {/* Top KPI Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -864,7 +1060,7 @@ export default function TeamSubmissionsPage() {
                   </span>
                 </div>
                 <span className="text-[11px] theme-text-muted">
-                  ~{(analytics.totalSubmissions / Math.max(analytics.monthlyTrend.length, 1)).toFixed(0)} avg submissions / month
+                  {selectedMonthFilter !== 'all' ? `Filtered by ${selectedMonthFilter}` : `Across ${analytics.activeMonthsHeaders.length} active months`}
                 </span>
               </div>
 
@@ -872,7 +1068,7 @@ export default function TeamSubmissionsPage() {
               <div className="p-4 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col justify-between gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold theme-text-muted uppercase tracking-wider">
-                    Team Members Active
+                    Team Recruiters Active
                   </span>
                   <span className="text-lg">👥</span>
                 </div>
@@ -881,11 +1077,11 @@ export default function TeamSubmissionsPage() {
                     {analytics.uniqueMarketersCount}
                   </span>
                   <span className="text-[11px] font-semibold theme-text-muted">
-                    Marketers
+                    Recruiters
                   </span>
                 </div>
                 <span className="text-[11px] theme-text-muted">
-                  Top performer: <strong className="theme-text">{analytics.marketerLeaderboard[0]?.name || 'N/A'}</strong> ({analytics.marketerLeaderboard[0]?.count || 0})
+                  Top recruiter: <strong className="theme-text">{analytics.marketerLeaderboard[0]?.name || 'N/A'}</strong> ({analytics.marketerLeaderboard[0]?.count || 0})
                 </span>
               </div>
 
@@ -893,7 +1089,7 @@ export default function TeamSubmissionsPage() {
               <div className="p-4 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col justify-between gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold theme-text-muted uppercase tracking-wider">
-                    Consultants Handled
+                    Candidates Handled
                   </span>
                   <span className="text-lg">💼</span>
                 </div>
@@ -924,13 +1120,354 @@ export default function TeamSubmissionsPage() {
                   </span>
                 </div>
                 <span className="text-[11px] theme-text-muted">
-                  <strong className="theme-text">{analytics.topClient.count}</strong> total submissions to this client
+                  <strong className="theme-text">{analytics.topClient.count}</strong> total submissions
                 </span>
               </div>
 
             </div>
 
-            {/* Middle Section: Monthly Trend & Top Consultants */}
+            {/* ========================================================================= */}
+            {/* NEW SECTION 1: RECRUITER MONTHLY PERFORMANCE MATRIX                      */}
+            {/* ========================================================================= */}
+            <div className="p-4 sm:p-5 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b theme-border pb-3">
+                <div>
+                  <h3 className="text-sm font-bold theme-text flex items-center gap-2">
+                    <span>📅</span> Recruiter Monthly Submissions Matrix
+                  </h3>
+                  <p className="text-[11px] theme-text-muted">
+                    Comprehensive month-by-month volume comparison for each recruiter with team totals &amp; peak performance
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full theme-surface border theme-border theme-text">
+                    👑 = Top Recruiter in Month
+                  </span>
+                </div>
+              </div>
+
+              {/* Scrollable Matrix Table */}
+              <div className="overflow-x-auto rounded-lg border theme-border theme-surface">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="theme-table-head border-b theme-border">
+                    <tr>
+                      <th className="px-3 py-2.5 font-bold border-r theme-border sticky left-0 z-10 theme-table-head min-w-[150px]">
+                        Recruiter / Marketer
+                      </th>
+                      {analytics.activeMonthsHeaders.map((mo) => (
+                        <th
+                          key={mo}
+                          className={`px-3 py-2.5 font-bold text-center border-r theme-border whitespace-nowrap min-w-[100px] ${
+                            selectedMonthFilter === mo ? 'bg-amber-400/20' : ''
+                          }`}
+                        >
+                          {mo}
+                        </th>
+                      ))}
+                      <th className="px-3 py-2.5 font-bold text-center border-r theme-border min-w-[80px]">
+                        Total
+                      </th>
+                      <th className="px-3 py-2.5 font-bold text-center border-r theme-border min-w-[80px]">
+                        Avg / Mo
+                      </th>
+                      <th className="px-3 py-2.5 font-bold text-center border-r theme-border min-w-[130px]">
+                        Peak Month
+                      </th>
+                      <th className="px-3 py-2.5 font-bold text-center min-w-[100px]">
+                        Deep Dive
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y theme-border">
+                    {analytics.recruiterMonthlyMatrix.map((rec, rIdx) => {
+                      const initials = getInitials(rec.name);
+                      const isSelectedDossier = analytics.dossierData?.name === rec.name;
+
+                      return (
+                        <tr
+                          key={rec.name}
+                          className={`transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${
+                            isSelectedDossier ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : ''
+                          }`}
+                        >
+                          {/* Recruiter Name */}
+                          <td className="px-3 py-2.5 font-bold border-r theme-border sticky left-0 z-10 theme-surface">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black shrink-0 shadow-2xs"
+                                style={{
+                                  background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%)',
+                                  color: 'var(--color-accent-text)',
+                                }}
+                              >
+                                {initials}
+                              </span>
+                              <span className="theme-text truncate font-bold text-xs">{rec.name}</span>
+                            </div>
+                          </td>
+
+                          {/* Monthly Submission Counts */}
+                          {analytics.activeMonthsHeaders.map((mo) => {
+                            const count = rec.monthlyCounts[mo] || 0;
+                            const isTopInMonth = count > 0 && analytics.topRecruiterPerMonth[mo]?.name === rec.name;
+
+                            return (
+                              <td
+                                key={mo}
+                                className={`px-3 py-2.5 text-center font-mono border-r theme-border tabular-nums ${
+                                  selectedMonthFilter === mo ? 'bg-amber-400/10' : ''
+                                }`}
+                              >
+                                {count === 0 ? (
+                                  <span className="opacity-30 text-[11px]">-</span>
+                                ) : isTopInMonth ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[11px] bg-amber-100 text-amber-950 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700 shadow-2xs">
+                                    <span>👑</span>
+                                    <span>{count}</span>
+                                  </span>
+                                ) : (
+                                  <span className="font-bold text-[11px] theme-text">
+                                    {count}
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+
+                          {/* Total */}
+                          <td className="px-3 py-2.5 text-center font-mono font-extrabold border-r theme-border tabular-nums text-xs">
+                            <span className="inline-block px-2 py-0.5 rounded-md theme-surface-alt border theme-border theme-text">
+                              {rec.total}
+                            </span>
+                          </td>
+
+                          {/* Average / Month */}
+                          <td className="px-3 py-2.5 text-center font-mono font-semibold border-r theme-border text-xs text-emerald-600 dark:text-emerald-400">
+                            {rec.avgPerMonth}
+                          </td>
+
+                          {/* Peak Month */}
+                          <td className="px-3 py-2.5 text-center border-r theme-border text-[11px]">
+                            {rec.peakMonth.count > 0 ? (
+                              <span className="theme-text-muted font-medium">
+                                <strong className="theme-text font-bold">{rec.peakMonth.month}</strong> ({rec.peakMonth.count})
+                              </span>
+                            ) : (
+                              <span className="opacity-40">-</span>
+                            )}
+                          </td>
+
+                          {/* Deep Dive Action */}
+                          <td className="px-3 py-2.5 text-center">
+                            <button
+                              onClick={() => {
+                                setSelectedDossierRecruiter(rec.name);
+                                document.getElementById('recruiter-dossier-section')?.scrollIntoView({ behavior: 'smooth' });
+                              }}
+                              className="px-2.5 py-1 rounded-md text-[11px] font-bold theme-btn hover:opacity-90 transition-opacity cursor-pointer shadow-2xs"
+                            >
+                              🔍 Inspect
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+
+                  {/* Team Totals Footer Row */}
+                  <tfoot className="border-t-2 theme-border font-bold bg-black/5 dark:bg-white/5">
+                    <tr>
+                      <td className="px-3 py-2.5 font-bold border-r theme-border sticky left-0 z-10 theme-surface-alt theme-text">
+                        Team Monthly Total
+                      </td>
+                      {analytics.activeMonthsHeaders.map((mo) => (
+                        <td
+                          key={mo}
+                          className="px-3 py-2.5 text-center font-mono font-extrabold border-r theme-border text-xs tabular-nums text-emerald-600 dark:text-emerald-400"
+                        >
+                          {analytics.teamMonthlyTotals[mo] || 0}
+                        </td>
+                      ))}
+                      <td className="px-3 py-2.5 text-center font-mono font-black border-r theme-border text-xs theme-text">
+                        {analytics.totalSubmissions}
+                      </td>
+                      <td className="px-3 py-2.5 text-center font-mono font-bold border-r theme-border text-xs opacity-70">
+                        {(analytics.totalSubmissions / Math.max(analytics.activeMonthsHeaders.length, 1)).toFixed(1)}
+                      </td>
+                      <td colSpan={2} className="px-3 py-2.5 text-center text-[11px] theme-text-muted italic">
+                        {analytics.activeMonthsHeaders.length} total active months tracked
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* NEW SECTION 2: RECRUITER MONTHLY IN-DEPTH DOSSIER (DEEP DIVE)             */}
+            {/* ========================================================================= */}
+            {analytics.dossierData && (
+              <div
+                id="recruiter-dossier-section"
+                className="p-4 sm:p-5 rounded-xl border-2 theme-border shadow-xs theme-surface flex flex-col gap-4"
+                style={{ borderColor: 'var(--color-accent)' }}
+              >
+                {/* Dossier Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b theme-border pb-3">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black shadow-xs"
+                      style={{
+                        background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%)',
+                        color: 'var(--color-accent-text)',
+                      }}
+                    >
+                      {getInitials(analytics.dossierData.name)}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-extrabold theme-text">
+                          {analytics.dossierData.name} — Monthly Performance Dossier
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                          {analytics.dossierData.total} Total Submissions
+                        </span>
+                      </div>
+                      <p className="text-xs theme-text-muted">
+                        In-depth monthly volume trajectory, candidates submitted, and client portfolio
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Quick Switcher among recruiters */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-bold theme-text-muted">Switch Recruiter:</span>
+                    <select
+                      value={analytics.dossierData.name}
+                      onChange={(e) => setSelectedDossierRecruiter(e.target.value)}
+                      className="px-2.5 py-1 border rounded-lg text-xs font-bold theme-input theme-border focus:outline-none"
+                    >
+                      {analytics.marketerNames.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Dossier Content Grid: Monthly Trend on Left + Portfolio on Right */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                  
+                  {/* Left 6 cols: Month-by-Month Submissions Progress Bars */}
+                  <div className="lg:col-span-6 p-4 rounded-xl border theme-surface-alt theme-border flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold theme-text uppercase tracking-wider flex items-center gap-1.5">
+                        <span>📊</span> Monthly Submission Trajectory
+                      </h4>
+                      <span className="text-[10px] font-semibold theme-text-muted">
+                        Peak: {analytics.dossierData.maxRecMonth} subs
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-1">
+                      {analytics.dossierData.monthlyBars.map((b) => {
+                        const pct = ((b.count / (analytics.dossierData?.maxRecMonth || 1)) * 100).toFixed(0);
+                        const isTeamLeadInMonth = b.count > 0 && analytics.topRecruiterPerMonth[b.month]?.name === analytics.dossierData?.name;
+
+                        return (
+                          <div key={b.month} className="flex flex-col gap-1 text-xs">
+                            <div className="flex justify-between items-center font-medium">
+                              <span className="theme-text font-semibold flex items-center gap-1.5">
+                                <span>{b.month}</span>
+                                {isTeamLeadInMonth && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                    👑 #1 on Team
+                                  </span>
+                                )}
+                              </span>
+                              <span className="font-mono text-[11px] theme-text font-bold">
+                                {b.count} {b.count === 1 ? 'submission' : 'submissions'}
+                              </span>
+                            </div>
+                            <div className="w-full h-2.5 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{
+                                  width: `${pct}%`,
+                                  backgroundColor: isTeamLeadInMonth ? '#d97706' : 'var(--color-accent)',
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right 6 cols: Candidate & Client Portfolio */}
+                  <div className="lg:col-span-6 flex flex-col gap-4">
+                    
+                    {/* Candidate Portfolio */}
+                    <div className="p-4 rounded-xl border theme-surface-alt theme-border flex flex-col gap-2.5">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold theme-text uppercase tracking-wider flex items-center gap-1.5">
+                          <span>💼</span> Top Consultants Marketed by {analytics.dossierData.name}
+                        </h4>
+                        <span className="text-[10px] theme-text-muted">
+                          {analytics.dossierData.topConsultants.length} profiles
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        {analytics.dossierData.topConsultants.map((c, idx) => (
+                          <div
+                            key={c.name}
+                            className="flex items-center justify-between p-2 rounded-lg border theme-surface theme-border text-xs"
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="font-bold text-[10px] theme-text-muted w-4">{idx + 1}.</span>
+                              <span className="font-bold theme-text truncate">{c.name}</span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded font-mono font-bold text-[11px] bg-emerald-50 text-emerald-900 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300">
+                              {c.count} subs
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Client Targets Portfolio */}
+                    <div className="p-4 rounded-xl border theme-surface-alt theme-border flex flex-col gap-2.5">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold theme-text uppercase tracking-wider flex items-center gap-1.5">
+                          <span>🏢</span> Top Client Partners Target
+                        </h4>
+                        <span className="text-[10px] theme-text-muted">
+                          {analytics.dossierData.topClients.length} clients
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {analytics.dossierData.topClients.map((cl) => (
+                          <span
+                            key={cl.name}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border theme-surface theme-border theme-text shadow-2xs"
+                          >
+                            <span>🏢 {cl.name}:</span>
+                            <strong className="font-mono text-emerald-600 dark:text-emerald-400">{cl.count}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* SECTION 3: MONTHLY TREND & TOP CONSULTANTS (Overall)                      */}
+            {/* ========================================================================= */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               
               {/* Left 7 cols: Submissions Per Month Chart */}
@@ -938,7 +1475,7 @@ export default function TeamSubmissionsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-bold theme-text flex items-center gap-1.5">
-                      <span>📅</span> Monthly Submissions Trend
+                      <span>📅</span> Team Overall Monthly Trend
                     </h3>
                     <p className="text-[11px] theme-text-muted">
                       Distribution of candidate submissions across 2026
@@ -1029,17 +1566,19 @@ export default function TeamSubmissionsPage() {
 
             </div>
 
-            {/* Bottom Section: Marketers Performance Leaderboard & Top Clients */}
+            {/* ========================================================================= */}
+            {/* SECTION 4: MARKETER LEADERBOARD & TOP CLIENTS                            */}
+            {/* ========================================================================= */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               
               {/* Left 7 cols: Marketer Team Performance */}
               <div className="lg:col-span-7 p-4 sm:p-5 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col gap-4">
                 <div>
                   <h3 className="text-sm font-bold theme-text flex items-center gap-1.5">
-                    <span>🏆</span> Marketer Performance Leaderboard
+                    <span>🏆</span> Recruiter Performance Leaderboard
                   </h3>
                   <p className="text-[11px] theme-text-muted">
-                    Submission contribution per team member
+                    Total submission contribution per team member
                   </p>
                 </div>
 
@@ -1048,10 +1587,10 @@ export default function TeamSubmissionsPage() {
                     <thead>
                       <tr className="border-b theme-border text-theme-muted font-bold text-[11px]">
                         <th className="pb-2 font-bold">#</th>
-                        <th className="pb-2 font-bold">Marketer Name</th>
+                        <th className="pb-2 font-bold">Recruiter Name</th>
                         <th className="pb-2 font-bold text-right">Submissions</th>
                         <th className="pb-2 font-bold text-right">Share of Total</th>
-                        <th className="pb-2 font-bold pl-3">Top Consultant</th>
+                        <th className="pb-2 font-bold pl-3">Top Candidate</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y theme-border">
