@@ -616,60 +616,10 @@ export default function VendorInfoPage() {
     <div className="min-h-screen theme-bg theme-text-body p-2 sm:p-5 font-[family-name:var(--font-geist-sans)]">
       <div className="max-w-7xl mx-auto flex flex-col gap-4">
 
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl border theme-surface theme-border shadow-xs">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-orange-100 text-orange-800 border border-orange-200">
-                🏢 Vendor Directory
-              </span>
-              <span className="text-xs theme-text-muted">
-                Direct Notion Database Sync
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight theme-text">
-              Vendor Info
-            </h1>
-            <p className="text-xs sm:text-sm theme-text-muted mt-0.5">
-              Browse, search, and manage recruiter &amp; employer contacts across Desi and PV networks with live Notion updates.
-            </p>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => loadVendors(true)}
-              disabled={isRefreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold theme-surface theme-border theme-text hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
-              title="Refresh directly from Notion"
-            >
-              <span className={`text-sm ${isRefreshing ? 'animate-spin' : ''}`}>↻</span>
-              <span>{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
-            </button>
-
-            <button
-              onClick={handleExportCSV}
-              disabled={filteredVendors.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold theme-surface theme-border theme-text hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer disabled:opacity-40"
-              title="Export filtered list to CSV"
-            >
-              <span>📥</span>
-              <span>Export CSV</span>
-            </button>
-
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-xs cursor-pointer"
-            >
-              <span>✨</span>
-              <span>Add New Vendor</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Database Switching Tabs (Desi Vendor Info vs PV Vendor Info) */}
-        <div className="flex items-center justify-between border-b theme-border pb-1">
-          <div className="flex items-center gap-2 sm:gap-3">
+        {/* Database Switching Tabs + Compact Actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b theme-border pb-2 pt-1">
+          {/* Left: Desi Vendor Info & PV Vendor Info tabs */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <button
               type="button"
               onClick={() => {
@@ -677,7 +627,7 @@ export default function VendorInfoPage() {
                 setSearchQuery('');
                 setShowOnlyUpdated(false);
               }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer select-none relative ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer select-none relative ${
                 activeTab === 'desi'
                   ? 'bg-orange-600 text-white shadow-md'
                   : 'theme-surface theme-border border theme-text hover:bg-slate-100/70'
@@ -706,7 +656,7 @@ export default function VendorInfoPage() {
                 setSearchQuery('');
                 setShowOnlyUpdated(false);
               }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer select-none relative ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer select-none relative ${
                 activeTab === 'pv'
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'theme-surface theme-border border theme-text hover:bg-slate-100/70'
@@ -729,11 +679,35 @@ export default function VendorInfoPage() {
             </button>
           </div>
 
-          {lastSynced && (
-            <span className="hidden sm:inline-block text-[11px] theme-text-muted font-mono">
-              Last synced: {lastSynced}
-            </span>
-          )}
+          {/* Right: Compact Actions (Excel Export + Add Vendor) */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {lastSynced && (
+              <span className="hidden lg:inline-block text-[11px] theme-text-muted font-mono mr-1">
+                Last synced: {lastSynced}
+              </span>
+            )}
+
+            <button
+              onClick={handleExportCSV}
+              disabled={filteredVendors.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold theme-surface theme-border theme-text hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50/60 transition-all shadow-2xs cursor-pointer disabled:opacity-40"
+              title="Export to Excel (.csv)"
+            >
+              <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21.17 3.25q.33 0 .59.25t.24.58v15.84q0 .33-.24.58t-.59.25H7.83q-.33 0-.58-.25t-.25-.58V17H2.83q-.33 0-.58-.25T2 16.17V7.83q0-.33.25-.58t.58-.25H7V4.08q0-.33.25-.58t.58-.25zM7 8H3.5v8H7zm7.4 7.2 2-3.2-2-3.2h-1.6l1.2 2.2-1.2 2.2zm-3.6 0 1.2-2.2-1.2-2.2H9.2l2 3.2-2 3.2zm9.2 3.8V5H8.5v2h7.83q.33 0 .58.25t.25.58v8.34q0 .33-.25.58t-.58.25H8.5v2z"/>
+              </svg>
+              <span>Excel</span>
+            </button>
+
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-xs cursor-pointer"
+              title="Add New Vendor"
+            >
+              <span>✨</span>
+              <span>Add Vendor</span>
+            </button>
+          </div>
         </div>
 
         {/* Update Notification Banner (Identical to Live Table) */}
