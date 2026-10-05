@@ -352,3 +352,90 @@ body {
 .theme-table-row-odd   { background-color: var(--color-table-row-odd); }
 .theme-table-row-hover:hover { background-color: var(--color-table-row-hover); }
 .theme-table-border    { border-color: var(--color-table-border); }
+
+/* ============================================================
+   Background Texture Overlays (Independent of Themes)
+   Applies across all pages while preserving theme canvas colors
+   ============================================================ */
+
+/* 1. Default: Clean solid theme canvas */
+[data-bg="default"] .theme-bg,
+[data-bg="default"].theme-bg {
+  background-color: var(--color-bg);
+  background-image: none;
+}
+
+/* 2. Tech Dot Matrix (Modern Linear / Raycast grid) */
+[data-bg="dots"] .theme-bg,
+[data-bg="dots"].theme-bg,
+.preview-bg-dots {
+  background-image: radial-gradient(circle, rgba(71, 85, 105, 0.22) 1.25px, transparent 1.25px) !important;
+  background-size: 20px 20px !important;
+}
+
+/* 3. Engineering Blueprint Grid */
+[data-bg="grid"] .theme-bg,
+[data-bg="grid"].theme-bg,
+.preview-bg-grid {
+  background-image: 
+    linear-gradient(to right, rgba(71, 85, 105, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(71, 85, 105, 0.12) 1px, transparent 1px) !important;
+  background-size: 24px 24px !important;
+}
+
+/* 4. Luminous Aura (Soft Ambient Cyan & Violet Glow) */
+[data-bg="glow"] .theme-bg,
+[data-bg="glow"].theme-bg,
+.preview-bg-glow {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(236, 72, 153, 0.10) 0px, transparent 50%) !important;
+  background-attachment: fixed !important;
+}
+
+/* 5. Isometric Lattice (Geometric 3D diamond grid) */
+[data-bg="isometric"] .theme-bg,
+[data-bg="isometric"].theme-bg,
+.preview-bg-isometric {
+  background-image:
+    linear-gradient(60deg, rgba(71, 85, 105, 0.08) 25%, transparent 25.5%, transparent 75%, rgba(71, 85, 105, 0.08) 75.5%),
+    linear-gradient(120deg, rgba(71, 85, 105, 0.08) 25%, transparent 25.5%, transparent 75%, rgba(71, 85, 105, 0.08) 75.5%) !important;
+  background-size: 32px 55.4px !important;
+}
+
+/* 6. Diagonal Micro-Stripes (Carbon / Precision texture) */
+[data-bg="stripes"] .theme-bg,
+[data-bg="stripes"].theme-bg,
+.preview-bg-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(71, 85, 105, 0.06),
+    rgba(71, 85, 105, 0.06) 1px,
+    transparent 1px,
+    transparent 10px
+  ) !important;
+}
+
+/* 7. Golden Hour Sunset (Warm Amber & Coral ambient mesh) */
+[data-bg="sunset"] .theme-bg,
+[data-bg="sunset"].theme-bg,
+.preview-bg-sunset {
+  background-image: 
+    radial-gradient(at 10% 10%, rgba(249, 115, 22, 0.18) 0px, transparent 40%),
+    radial-gradient(at 90% 15%, rgba(244, 63, 94, 0.13) 0px, transparent 45%),
+    radial-gradient(at 40% 90%, rgba(234, 179, 8, 0.12) 0px, transparent 40%) !important;
+  background-attachment: fixed !important;
+}
+
+/* 8. Topographic Contours (Architectural Map Elevation) */
+[data-bg="topography"] .theme-bg,
+[data-bg="topography"].theme-bg,
+.preview-bg-topography {
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(71, 85, 105, 0.12) 10%, transparent 11%),
+    radial-gradient(circle at 0% 0%, rgba(71, 85, 105, 0.08) 20%, transparent 21%),
+    radial-gradient(circle at 100% 100%, rgba(71, 85, 105, 0.08) 20%, transparent 21%) !important;
+  background-size: 48px 48px !important;
+}
+

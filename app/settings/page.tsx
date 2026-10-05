@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTheme, ThemeName } from '../context/ThemeContext';
+import { useTheme, ThemeName, BackgroundName } from '../context/ThemeContext';
 
 const themes: {
   id: ThemeName;
@@ -142,9 +142,73 @@ const themes: {
   },
 ];
 
+const backgrounds: {
+  id: BackgroundName;
+  name: string;
+  tagline: string;
+  desc: string;
+  previewClass: string;
+}[] = [
+  {
+    id: 'default',
+    name: 'Clean Canvas',
+    tagline: '✨ Default Solid Canvas',
+    desc: 'The original pure theme background with no textures or patterns. Clean, minimal, and focused.',
+    previewClass: '',
+  },
+  {
+    id: 'dots',
+    name: 'Tech Dot Matrix',
+    tagline: '⚡ Linear & Raycast Dots',
+    desc: 'Subtle technical dot grid used by modern developer platforms and high-precision tools.',
+    previewClass: 'preview-bg-dots',
+  },
+  {
+    id: 'grid',
+    name: 'Blueprint Grid',
+    tagline: '📐 Engineering Grid Lines',
+    desc: 'Fine architectural grid lines giving structured geometry and data-grid precision.',
+    previewClass: 'preview-bg-grid',
+  },
+  {
+    id: 'glow',
+    name: 'Luminous Aura',
+    tagline: '🔮 Ambient Radial Glow',
+    desc: 'Soft atmospheric cyan, violet, and pink ambient glows radiating softly across corners.',
+    previewClass: 'preview-bg-glow',
+  },
+  {
+    id: 'isometric',
+    name: 'Isometric Lattice',
+    tagline: '💎 3D Diamond Geometry',
+    desc: 'Isometric diamond line lattice adding architectural depth and spatial elegance.',
+    previewClass: 'preview-bg-isometric',
+  },
+  {
+    id: 'stripes',
+    name: 'Diagonal Stripes',
+    tagline: '🏎️ Carbon Micro-Hatch',
+    desc: 'Fine 45-degree micro-hatch diagonal lines for a dynamic, carbon-fiber textured finish.',
+    previewClass: 'preview-bg-stripes',
+  },
+  {
+    id: 'sunset',
+    name: 'Golden Hour Sunset',
+    tagline: '🌅 Warm Ambient Mesh',
+    desc: 'Warm ambient sunset mesh with peach, amber, and coral glows radiating across the page.',
+    previewClass: 'preview-bg-sunset',
+  },
+  {
+    id: 'topography',
+    name: 'Topographic Contours',
+    tagline: '🗺️ Map Elevation Curves',
+    desc: 'Subtle concentric contour curves reminiscent of architectural and geographic maps.',
+    previewClass: 'preview-bg-topography',
+  },
+];
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, background, setBackground } = useTheme();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -328,7 +392,115 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Section 2: Account & Security (Logout) */}
+        {/* Section 2: Workspace Background Canvas (Works Separately from Themes) */}
+        <section className="p-6 sm:p-8 rounded-2xl border shadow-xs theme-surface theme-border flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 theme-border">
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xl">🖼️</span>
+                <h2 className="text-lg font-bold theme-text">
+                  Workspace Background Canvas
+                </h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
+                  Universal Texture
+                </span>
+              </div>
+              <p className="text-xs theme-text-muted mt-0.5">
+                Select an architectural background texture that overlays across all pages and routes. Operates independently from your theme palette, with the clean solid canvas set as default.
+              </p>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full theme-surface-alt theme-border border theme-text-muted shrink-0">
+              Active: {backgrounds.find((b) => b.id === background)?.name}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {backgrounds.map((b) => {
+              const isSelected = background === b.id;
+              return (
+                <div
+                  key={b.id}
+                  onClick={() => setBackground(b.id)}
+                  className="rounded-2xl border-2 cursor-pointer transition-all flex flex-col gap-0 shadow-xs hover:shadow-md overflow-hidden"
+                  style={{
+                    borderColor: isSelected ? 'var(--color-accent)' : 'var(--color-border)',
+                    boxShadow: isSelected ? '0 0 0 3px rgba(2, 132, 199, 0.22)' : undefined,
+                  }}
+                >
+                  {/* Background Live Preview Box */}
+                  <div
+                    className={`h-24 p-3 flex flex-col justify-between border-b relative ${b.previewClass}`}
+                    style={{
+                      backgroundColor: 'var(--color-bg)',
+                      borderColor: 'var(--color-border-soft)',
+                    }}
+                  >
+                    <div className="flex items-center justify-between z-10">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md theme-surface border theme-border shadow-2xs">
+                        {b.name}
+                      </span>
+                      {isSelected && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs">
+                          ✓ Active
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg p-2 theme-surface border theme-border shadow-2xs flex items-center justify-between text-[10px] font-semibold z-10">
+                      <span className="truncate">Sample Table Canvas</span>
+                      <span className="text-[8px] px-1 py-0.5 rounded theme-badge font-bold">
+                        PREVIEW
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Background Details Footer */}
+                  <div className="p-3.5 flex flex-col gap-1.5 theme-surface flex-1 justify-between">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-xs theme-text">
+                          {b.name}
+                        </h3>
+                        {b.id === 'default' && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] font-semibold text-sky-600 mt-0.5">
+                        {b.tagline}
+                      </p>
+                      <p className="text-[10px] theme-text-muted mt-1 leading-relaxed">
+                        {b.desc}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setBackground(b.id);
+                      }}
+                      className="mt-2.5 w-full py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                      style={
+                        isSelected
+                          ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-text)' }
+                          : {
+                              backgroundColor: 'var(--color-surface-alt)',
+                              color: 'var(--color-text)',
+                              border: '1px solid var(--color-border)',
+                            }
+                      }
+                    >
+                      {isSelected ? '✓ Currently Active' : 'Apply Background'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Section 3: Account & Security (Logout) */}
         <section className="p-6 sm:p-8 rounded-2xl border shadow-xs theme-surface theme-border flex flex-col gap-6">
           <div className="flex items-center justify-between border-b pb-4 theme-border">
             <div>
@@ -369,7 +541,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Section 3: System & Integration Status */}
+        {/* Section 4: System & Integration Status */}
         <section className="p-6 sm:p-8 rounded-2xl border shadow-xs theme-surface theme-border flex flex-col gap-4">
           <div className="border-b pb-4 theme-border">
             <h2 className="text-lg font-bold theme-text flex items-center gap-2">
