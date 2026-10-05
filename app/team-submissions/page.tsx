@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import CellBadge from '../components/CellBadge';
+import { normalizeName, getInitials } from '@/app/utils/nameUtils';
 
 interface SheetData {
   configured: boolean;
@@ -100,20 +101,6 @@ function parseNumericValue(str: string): number | null {
   return isNaN(val) ? null : val;
 }
 
-// Normalize name casing for cleaner aggregations (e.g. 'sravani' -> 'Sravani')
-function normalizeName(name: string): string {
-  if (!name || name === '-' || name.trim() === '') return 'Unknown';
-  const trimmed = name.trim();
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-}
-
-function getInitials(name: string): string {
-  if (!name || name === '-') return '';
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
 
 function getColumnWidthClass(header: string): string {
   const h = header.toLowerCase();

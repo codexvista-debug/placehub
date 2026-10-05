@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import CellBadge from './CellBadge';
+import { normalizeName, getInitials } from '@/app/utils/nameUtils';
 
 interface SchemaInfo {
   type: string;
@@ -113,20 +114,6 @@ function compareMonths(a: string, b: string): number {
   return monthNames.indexOf(mA) - monthNames.indexOf(mB);
 }
 
-// Normalize name casing for cleaner aggregations
-function normalizeName(name: string): string {
-  if (!name || name === '-' || name.trim() === '') return 'Unknown';
-  const trimmed = name.trim();
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-}
-
-function getInitials(name: string): string {
-  if (!name || name === '-') return '';
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
 
 // Flexible field getter to handle slightly differing column names in Notion
 function getField(row: Record<string, string>, searchKeys: string[]): string {

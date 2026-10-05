@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { normalizeName } from '@/app/utils/nameUtils';
 
 interface CellBadgeProps {
   header: string;
@@ -129,6 +130,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
     const bg = isMarketer ? '#fffbeb' : '#fdf2f8';
     const text = isMarketer ? '#78350f' : '#831843';
     const border = isMarketer ? '#fde68a' : '#fbcfe8';
+    const displayVal = isMarketer ? normalizeName(value) : value;
 
     return (
       <span
@@ -143,7 +145,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
           className="w-1.5 h-1.5 rounded-full shrink-0"
           style={{ backgroundColor: dotColor }}
         />
-        <span>{value}</span>
+        <span>{displayVal}</span>
       </span>
     );
   }

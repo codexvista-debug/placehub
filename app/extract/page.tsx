@@ -25,7 +25,7 @@ export default function ExtractPage() {
     position: '',
     client: '',
     status: 'Interview',
-    marketer: '',
+    marketer: 'Waseem',
     support: '',
     recruiter: '',
     recruiterEmail: '',
@@ -257,7 +257,6 @@ export default function ExtractPage() {
     if (extractedStatus) count++;
     if (extractedDate) count++;
     if (extractedTime) count++;
-    if (extractedMarketer) count++;
     if (extractedSupport) count++;
     if (recruiterMatch) count++;
     if (emailMatch) count++;
@@ -269,14 +268,14 @@ export default function ExtractPage() {
       status: extractedStatus || prev.status,
       client: extractedClient || prev.client,
       support: extractedSupport || prev.support,
-      marketer: extractedMarketer || prev.marketer,
+      marketer: prev.marketer || 'Waseem',
       position: extractedPosition || prev.position,
       interviewTime: extractedTime || prev.interviewTime,
       date: extractedDate || prev.date,
       recruiter: recruiterMatch ? recruiterMatch[1].trim() : prev.recruiter,
       recruiterEmail: emailMatch ? emailMatch[0] : prev.recruiterEmail,
       recruiterPhone: phoneMatch ? phoneMatch[0] : prev.recruiterPhone,
-      update: text.length > 300 ? text.substring(0, 300) + '...' : text,
+      update: prev.update || '',
     }));
 
     setLastFilledCount(count);
