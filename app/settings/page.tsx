@@ -402,12 +402,42 @@ export default function SettingsPage() {
                   N
                 </div>
                 <div>
-                  <div className="text-xs font-bold theme-text">Notion Database API</div>
-                  <div className="text-[11px] theme-text-muted">One-Click Text Extractor Push</div>
+                  <div className="text-xs font-bold theme-text">Notion Placements Database</div>
+                  <div className="text-[11px] theme-text-muted">Live Table &amp; Text Extractor Push</div>
                 </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
                 ● Active
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl border theme-surface-alt theme-border flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs">
+                  🇮🇳
+                </div>
+                <div>
+                  <div className="text-xs font-bold theme-text">Desi Vendor Info Database</div>
+                  <div className="text-[11px] theme-text-muted">Vendor Directory Sync</div>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                ● Connected
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl border theme-surface-alt theme-border flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs">
+                  🌐
+                </div>
+                <div>
+                  <div className="text-xs font-bold theme-text">PV Vendor Info Database</div>
+                  <div className="text-[11px] theme-text-muted">Vendor Directory Sync</div>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                ● Connected
               </span>
             </div>
           </div>
