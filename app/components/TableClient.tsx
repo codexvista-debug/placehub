@@ -134,19 +134,19 @@ function getField(row: Record<string, string>, searchKeys: string[]): string {
 
 function getColumnWidthClass(header: string): string {
   const h = header.toLowerCase();
-  if (h === 'date') return 'w-[95px] min-w-[85px] max-w-[105px] whitespace-nowrap';
-  if (h.includes('time')) return 'w-[145px] min-w-[130px] max-w-[165px]';
-  if (h.includes('consultant') || h.includes('candidate')) return 'w-[140px] min-w-[125px] max-w-[160px]';
-  if (h.includes('position') || h.includes('role')) return 'w-[130px] min-w-[115px] max-w-[155px]';
-  if (h.includes('vendor') || h.includes('client')) return 'w-[105px] min-w-[95px] max-w-[125px]';
-  if (h.includes('status')) return 'w-[115px] min-w-[105px] max-w-[135px]';
-  if (h.includes('marketer')) return 'w-[100px] min-w-[90px] max-w-[115px]';
-  if (h.includes('support')) return 'w-[100px] min-w-[90px] max-w-[115px]';
-  if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) return 'w-[115px] min-w-[105px] max-w-[135px]';
-  if (h.includes('email')) return 'w-[140px] min-w-[120px] max-w-[160px]';
-  if (h.includes('phone')) return 'w-[110px] min-w-[100px] max-w-[125px]';
+  if (h === 'date') return 'w-[95px] min-w-[90px] max-w-[105px] whitespace-nowrap';
+  if (h.includes('time')) return 'w-[170px] min-w-[155px] max-w-[195px]';
+  if (h.includes('consultant') || h.includes('candidate')) return 'w-[155px] min-w-[140px] max-w-[175px]';
+  if (h.includes('position') || h.includes('role')) return 'w-[155px] min-w-[140px] max-w-[185px]';
+  if (h.includes('vendor') || h.includes('client')) return 'w-[115px] min-w-[105px] max-w-[135px]';
+  if (h.includes('status')) return 'w-[125px] min-w-[115px] max-w-[140px]';
+  if (h.includes('marketer')) return 'w-[105px] min-w-[95px] max-w-[120px]';
+  if (h.includes('support')) return 'w-[105px] min-w-[95px] max-w-[120px]';
+  if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) return 'w-[135px] min-w-[120px] max-w-[155px]';
+  if (h.includes('email')) return 'w-[185px] min-w-[165px] max-w-[215px]';
+  if (h.includes('phone')) return 'w-[125px] min-w-[115px] max-w-[140px]';
   if (h.includes('rate') || h.includes('price')) return 'w-[95px] min-w-[85px] max-w-[110px] whitespace-nowrap';
-  if (h.includes('update') || h.includes('notes')) return 'min-w-[180px] max-w-[340px]';
+  if (h.includes('update') || h.includes('notes')) return 'w-[180px] min-w-[150px] max-w-[220px]';
   return 'w-[120px] min-w-[100px] max-w-[150px]';
 }
 
@@ -967,7 +967,7 @@ export default function TableClient({
             className="w-full overflow-x-auto rounded-lg shadow-xs min-h-[450px] border theme-table-border"
             style={{ backgroundColor: 'var(--color-table-row-odd)' }}
           >
-            <table className="min-w-full text-left text-xs border-collapse table-auto">
+            <table className="w-full min-w-[1500px] text-left text-xs border-collapse table-fixed">
               <thead
                 className="theme-table-head sticky top-0 z-30 border-b theme-table-border"
               >
