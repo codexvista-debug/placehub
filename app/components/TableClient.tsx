@@ -134,20 +134,20 @@ function getField(row: Record<string, string>, searchKeys: string[]): string {
 
 function getColumnWidthClass(header: string): string {
   const h = header.toLowerCase();
-  if (h === 'date') return 'w-[115px] min-w-[110px] max-w-[125px] whitespace-nowrap';
-  if (h.includes('time')) return 'w-[190px] min-w-[170px] max-w-[240px]';
-  if (h.includes('consultant') || h.includes('candidate')) return 'w-[180px] min-w-[160px] max-w-[230px]';
-  if (h.includes('position') || h.includes('role')) return 'w-[220px] min-w-[190px] max-w-[280px]';
-  if (h.includes('vendor') || h.includes('client')) return 'w-[130px] min-w-[115px] max-w-[160px]';
-  if (h.includes('status')) return 'w-[140px] min-w-[125px] max-w-[170px]';
-  if (h.includes('marketer')) return 'w-[120px] min-w-[110px] max-w-[140px]';
-  if (h.includes('support')) return 'w-[120px] min-w-[105px] max-w-[140px]';
-  if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) return 'w-[150px] min-w-[130px] max-w-[180px]';
-  if (h.includes('email')) return 'w-[190px] min-w-[165px] max-w-[230px]';
-  if (h.includes('phone')) return 'w-[170px] min-w-[150px] max-w-[220px]';
-  if (h.includes('rate') || h.includes('price')) return 'w-[110px] min-w-[95px] max-w-[130px] whitespace-nowrap';
-  if (h.includes('update') || h.includes('notes')) return 'w-[320px] min-w-[260px] max-w-[420px]';
-  return 'w-[140px] min-w-[120px] max-w-[190px]';
+  if (h === 'date') return 'w-[95px] min-w-[85px] max-w-[105px] whitespace-nowrap';
+  if (h.includes('time')) return 'w-[145px] min-w-[130px] max-w-[165px]';
+  if (h.includes('consultant') || h.includes('candidate')) return 'w-[140px] min-w-[125px] max-w-[160px]';
+  if (h.includes('position') || h.includes('role')) return 'w-[130px] min-w-[115px] max-w-[155px]';
+  if (h.includes('vendor') || h.includes('client')) return 'w-[105px] min-w-[95px] max-w-[125px]';
+  if (h.includes('status')) return 'w-[115px] min-w-[105px] max-w-[135px]';
+  if (h.includes('marketer')) return 'w-[100px] min-w-[90px] max-w-[115px]';
+  if (h.includes('support')) return 'w-[100px] min-w-[90px] max-w-[115px]';
+  if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) return 'w-[115px] min-w-[105px] max-w-[135px]';
+  if (h.includes('email')) return 'w-[140px] min-w-[120px] max-w-[160px]';
+  if (h.includes('phone')) return 'w-[110px] min-w-[100px] max-w-[125px]';
+  if (h.includes('rate') || h.includes('price')) return 'w-[95px] min-w-[85px] max-w-[110px] whitespace-nowrap';
+  if (h.includes('update') || h.includes('notes')) return 'min-w-[180px] max-w-[340px]';
+  return 'w-[120px] min-w-[100px] max-w-[150px]';
 }
 
 export default function TableClient({
@@ -985,7 +985,7 @@ export default function TableClient({
                     return (
                       <th
                         key={header}
-                        className={`px-3 py-2.5 font-bold select-none relative border-r last:border-r-0 theme-table-border text-[11.5px] uppercase tracking-wider ${getColumnWidthClass(header)}`}
+                        className={`px-2 py-2 font-bold select-none relative border-r last:border-r-0 theme-table-border text-[11px] uppercase tracking-wider ${getColumnWidthClass(header)}`}
                       >
                         <div className="flex items-center justify-between gap-1">
                           <span className="leading-snug">{header}</span>
@@ -1102,16 +1102,13 @@ export default function TableClient({
                       </th>
                     );
                   })}
-                  <th className="px-2.5 py-2.5 font-bold w-12 text-center select-none theme-table-border text-[11px] uppercase tracking-wider">
-                    Actions
-                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {currentRows.length === 0 ? (
                   <tr>
-                    <td colSpan={columnHeaders.length + 2} className="px-4 py-8 text-center theme-text-muted font-medium">
+                    <td colSpan={columnHeaders.length + 1} className="px-4 py-8 text-center theme-text-muted font-medium">
                       No placements match your search or filter criteria.
                     </td>
                   </tr>
@@ -1204,7 +1201,7 @@ export default function TableClient({
                                   cellValue: row[header] || '',
                                 });
                               }}
-                              className={`px-3 py-2.5 border-r last:border-r-0 relative cursor-pointer transition-colors leading-snug align-top ${getColumnWidthClass(header)}`}
+                              className={`px-2 py-2 border-r last:border-r-0 relative cursor-pointer transition-colors leading-snug align-top ${getColumnWidthClass(header)}`}
                               style={{
                                 borderColor: 'var(--color-table-border)',
                                 backgroundColor: isUpdatedCell ? 'rgba(245,158,11,0.12)' : undefined,
@@ -1245,21 +1242,6 @@ export default function TableClient({
                             </td>
                           );
                         })}
-
-                        {/* Action column */}
-                        <td className="px-2 py-2 text-center align-middle whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRowToDelete(row);
-                            }}
-                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-xs"
-                            title="Delete placement row"
-                          >
-                            🗑️
-                          </button>
-                        </td>
                       </tr>
                     );
                   })

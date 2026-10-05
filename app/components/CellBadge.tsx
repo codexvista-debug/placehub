@@ -71,7 +71,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
 
     return (
       <span
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold tracking-tight shadow-2xs whitespace-nowrap"
+        className="inline-flex items-start gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-tight shadow-2xs leading-snug break-words max-w-full text-left"
         style={{
           backgroundColor: bg,
           color: textColor,
@@ -79,10 +79,10 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
         }}
       >
         <span
-          className="w-2 h-2 rounded-full shrink-0"
+          className="w-1.5 h-1.5 rounded-full shrink-0 mt-1"
           style={{ backgroundColor: dotColor }}
         />
-        <span>{value}</span>
+        <span className="break-words leading-tight">{value}</span>
       </span>
     );
   }
@@ -91,24 +91,24 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
   if (h.includes('consultant') || h.includes('candidate')) {
     const initials = getInitials(value);
     return (
-      <div className="flex items-center gap-2 max-w-full">
+      <div className="flex items-start gap-1.5 max-w-full">
         <span
-          className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black shrink-0 text-white shadow-2xs"
+          className="w-5 h-5 rounded flex items-center justify-center text-[9.5px] font-black shrink-0 text-white shadow-2xs mt-0.5"
           style={{ backgroundColor: 'var(--color-accent)' }}
         >
           {initials}
         </span>
-        <span className="font-bold text-[12.5px] text-slate-900 leading-snug break-words">
+        <span className="font-bold text-[12px] text-slate-900 leading-snug break-words">
           {value}
         </span>
       </div>
     );
   }
 
-  // 3. POSITION / ROLE — Professional crisp typography
+  // 3. POSITION / ROLE — Professional crisp typography with clean multi-line wrapping
   if (h.includes('position') || h.includes('role') || h.includes('job')) {
     return (
-      <span className="font-semibold text-[12px] text-slate-850 leading-snug break-words">
+      <span className="font-semibold text-[11.5px] text-slate-850 leading-snug break-words block max-w-full">
         {value}
       </span>
     );
@@ -117,13 +117,13 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
   // 4. VENDOR / CLIENT — Clean corporate tag with crisp contrast
   if (h.includes('vendor') || h.includes('client')) {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11.5px] font-bold tracking-tight bg-slate-100 text-slate-900 border border-slate-300 shadow-2xs">
-        {value}
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold tracking-tight bg-slate-100 text-slate-900 border border-slate-300 shadow-2xs break-words leading-tight text-left max-w-full">
+        <span className="break-words">{value}</span>
       </span>
     );
   }
 
-  // 5. MARKETER & SUPPORT — Clean person badge
+  // 5. MARKETER & SUPPORT — Clean person badge with wrapping support
   if (h.includes('marketer') || h.includes('support')) {
     const isMarketer = h.includes('marketer');
     const dotColor = isMarketer ? '#d97706' : '#db2777';
@@ -134,7 +134,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
 
     return (
       <span
-        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold shadow-2xs whitespace-nowrap"
+        className="inline-flex items-start gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold shadow-2xs leading-snug break-words max-w-full text-left"
         style={{
           backgroundColor: bg,
           color: text,
@@ -142,10 +142,10 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
         }}
       >
         <span
-          className="w-1.5 h-1.5 rounded-full shrink-0"
+          className="w-1.5 h-1.5 rounded-full shrink-0 mt-1"
           style={{ backgroundColor: dotColor }}
         />
-        <span>{displayVal}</span>
+        <span className="break-words leading-tight">{displayVal}</span>
       </span>
     );
   }
@@ -162,7 +162,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
   // 7. TIME — Crisp readable date-time string
   if (h.includes('time')) {
     return (
-      <span className="text-xs font-semibold text-slate-800 leading-snug">
+      <span className="text-[11.5px] font-semibold text-slate-800 leading-snug break-words block max-w-full">
         {value}
       </span>
     );
@@ -171,7 +171,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
   // 8. RECRUITER CONTACTS
   if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) {
     return (
-      <span className="font-bold text-xs text-slate-900">
+      <span className="font-bold text-xs text-slate-900 leading-snug break-words block max-w-full">
         {value}
       </span>
     );
