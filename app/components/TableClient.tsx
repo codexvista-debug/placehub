@@ -193,6 +193,24 @@ export default function TableClient({
   const [savingStatus, setSavingStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
   const [highlightedRowId, setHighlightedRowId] = useState<string | null>(null);
 
+  // Row deletion and context menu states
+  const [rowToDelete, setRowToDelete] = useState<Record<string, string> | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    row: Record<string, string>;
+  } | null>(null);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!contextMenu) return;
+    const closeMenu = () => setContextMenu(null);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
+  }, [contextMenu]);
+
   // Bulletproof popover close on outside click
   useEffect(() => {
     if (!activePopover) return;
@@ -331,6 +349,30 @@ export default function TableClient({
     setTimeout(() => {
       setHighlightedRowId(null);
     }, 4000);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!rowToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch('/api/delete-placement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageId: rowToDelete.id }),
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Failed to delete row');
+      }
+      setData((prev) => prev.filter((r) => r.id !== rowToDelete.id));
+      setRowToDelete(null);
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      setDeleteError(err.message || 'Error deleting placement');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const startEditing = (rowId: string, header: string, currentValue: string) => {
@@ -1057,13 +1099,16 @@ export default function TableClient({
                       </th>
                     );
                   })}
+                  <th className="px-2.5 py-2.5 font-bold w-12 text-center select-none theme-table-border text-[11px] uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {currentRows.length === 0 ? (
                   <tr>
-                    <td colSpan={columnHeaders.length + 1} className="px-4 py-8 text-center theme-text-muted font-medium">
+                    <td colSpan={columnHeaders.length + 2} className="px-4 py-8 text-center theme-text-muted font-medium">
                       No placements match your search or filter criteria.
                     </td>
                   </tr>
@@ -1078,6 +1123,14 @@ export default function TableClient({
                         key={row.id}
                         id={`row-${row.id}`}
                         data-updated={isNewRow ? 'true' : undefined}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setContextMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            row,
+                          });
+                        }}
                         className={`transition-all duration-300 ${
                           highlightedRowId === row.id ? 'ring-2 ring-amber-500 z-10' : ''
                         }`}
@@ -1102,11 +1155,22 @@ export default function TableClient({
                           if (!isNewRow && highlightedRowId !== row.id) (e.currentTarget as HTMLElement).style.backgroundColor = isEven ? 'var(--color-table-row-even)' : 'var(--color-table-row-odd)';
                         }}
                       >
-                        {/* # Row Number column */}
+                        {/* # Row Number column with quick delete on hover */}
                         <td
-                          className="px-2.5 py-2 text-center font-mono font-bold text-[11px] border-r theme-table-border theme-text-muted"
+                          className="px-2.5 py-2 text-center font-mono font-bold text-[11px] border-r theme-table-border theme-text-muted relative group/idx"
                         >
-                          {displayRowNumber}
+                          <span className="group-hover/idx:hidden">{displayRowNumber}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRowToDelete(row);
+                            }}
+                            className="hidden group-hover/idx:inline-block text-slate-400 hover:text-rose-600 transition-colors cursor-pointer text-xs"
+                            title="Delete this placement row"
+                          >
+                            🗑️
+                          </button>
                         </td>
 
                         {columnHeaders.map((header, colIndex) => {
@@ -1166,6 +1230,21 @@ export default function TableClient({
                             </td>
                           );
                         })}
+
+                        {/* Action column */}
+                        <td className="px-2 py-2 text-center align-middle whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRowToDelete(row);
+                            }}
+                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-xs"
+                            title="Delete placement row"
+                          >
+                            🗑️
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
@@ -1892,6 +1971,154 @@ export default function TableClient({
 
           </div>
 
+        </div>
+      )}
+
+      {/* Right-click Floating Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-2xl py-1 w-52 text-xs font-semibold text-slate-800 animate-in fade-in zoom-in-95 duration-75"
+          style={{
+            left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 220 : contextMenu.x),
+            top: Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 150 : contextMenu.y),
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100 flex items-center justify-between">
+            <span>Row Actions</span>
+            <span className="text-[9px] font-mono text-slate-400">Right-click</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setRowToDelete(contextMenu.row);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-rose-50 text-rose-600 font-bold flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <span>🗑️</span> Delete Placement...
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const textToCopy =
+                contextMenu.row['Consultant Name'] ||
+                contextMenu.row['Candidate'] ||
+                contextMenu.row['Date'] ||
+                '';
+              if (textToCopy) navigator.clipboard.writeText(textToCopy);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-slate-100 text-slate-700 font-semibold flex items-center gap-2 transition-colors cursor-pointer border-t border-slate-100"
+          >
+            <span>📋</span> Copy Candidate Name
+          </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal Dialog */}
+      {rowToDelete && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => !isDeleting && setRowToDelete(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-5 text-slate-900 flex flex-col gap-4 animate-in zoom-in-95 duration-150"
+          >
+            {/* Modal Header */}
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shrink-0">
+                ⚠️
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+                  Delete Placement Record?
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  This will archive and permanently remove this row from your Notion database.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setRowToDelete(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md text-sm cursor-pointer disabled:opacity-40"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Record Summary Box */}
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Candidate:</span>
+                <span className="font-bold text-slate-900 truncate max-w-[240px]">
+                  {rowToDelete['Consultant Name'] || rowToDelete['Candidate'] || rowToDelete['Date'] || 'Placement'}
+                </span>
+              </div>
+              {rowToDelete['Vendor / Client'] && rowToDelete['Vendor / Client'] !== '-' && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Client / Vendor:</span>
+                  <span className="font-semibold text-slate-800">{rowToDelete['Vendor / Client']}</span>
+                </div>
+              )}
+              {rowToDelete['Position'] && rowToDelete['Position'] !== '-' && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Position:</span>
+                  <span className="font-semibold text-slate-800 truncate max-w-[240px]">{rowToDelete['Position']}</span>
+                </div>
+              )}
+              {rowToDelete['Interview Time'] && rowToDelete['Interview Time'] !== '-' && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Interview Time:</span>
+                  <span className="font-mono text-slate-700">{rowToDelete['Interview Time']}</span>
+                </div>
+              )}
+              {rowToDelete['Status'] && rowToDelete['Status'] !== '-' && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Status:</span>
+                  <span className="font-semibold text-slate-800">{rowToDelete['Status']}</span>
+                </div>
+              )}
+            </div>
+
+            {deleteError && (
+              <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+                ✕ {deleteError}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setRowToDelete(null)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Deleting from Notion...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🗑️</span>
+                    <span>Yes, Delete Row</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
