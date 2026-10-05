@@ -355,7 +355,7 @@ export default function ExtractPage() {
           href="/"
           className="self-start sm:self-auto px-3.5 py-1.5 rounded-lg text-xs font-bold theme-surface theme-border border shadow-2xs hover:theme-surface-alt transition-colors"
         >
-          ← Back to Live Table
+          ← Back to Interviews
         </Link>
       </div>
 
@@ -479,13 +479,13 @@ Job Description...`}
             <div className="p-3.5 rounded-lg bg-emerald-100 border border-emerald-400 text-emerald-950 text-xs sm:text-sm font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs animate-fadeIn">
               <div className="flex items-center gap-2">
                 <span className="text-lg">🎉</span>
-                <span>Placement successfully added to your Notion Database &amp; Live Table!</span>
+                <span>Placement successfully added to your Notion Database &amp; Interviews table!</span>
               </div>
               <Link
                 href="/"
                 className="underline font-extrabold hover:text-emerald-800 text-xs sm:text-sm shrink-0"
               >
-                View in Live Table →
+                View in Interviews →
               </Link>
             </div>
           )}

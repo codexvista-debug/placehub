@@ -23,7 +23,7 @@ export default function Header() {
       ),
     },
     {
-      name: 'Live Table',
+      name: 'Interviews',
       path: '/',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +80,7 @@ export default function Header() {
             href="/"
             prefetch={true}
             className="flex items-center gap-2.5 shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
-            title="Go to Live Table"
+            title="Go to Interviews"
           >
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center shadow-xs transition-transform hover:scale-105 border border-slate-200/80 bg-white"

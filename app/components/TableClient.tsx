@@ -714,6 +714,23 @@ export default function TableClient({
     dossierPage * dossierRowsPerPage
   );
 
+  const handleExportExcel = () => {
+    if (filteredAndSortedData.length === 0) return;
+    const headers = columnHeaders;
+    const rows = filteredAndSortedData.map((row) =>
+      headers.map((h) => `"${(row[h] || '').replace(/"/g, '""')}"`)
+    );
+    const csvContent = [headers.map((h) => `"${h}"`).join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `interviews_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const renderPaginationBar = (isBottom = false) => (
     <div
       className={`flex flex-wrap items-center justify-between gap-3 px-1 text-xs font-medium theme-text-muted ${isBottom ? 'pt-2' : 'pb-2 border-b theme-border'}`}
@@ -754,6 +771,18 @@ export default function TableClient({
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={handleExportExcel}
+          disabled={filteredAndSortedData.length === 0}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-bold theme-surface theme-border theme-text hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50/60 transition-all shadow-2xs cursor-pointer disabled:opacity-40 mr-1"
+          title="Export table to Excel (.csv)"
+        >
+          <svg className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21.17 3.25q.33 0 .59.25t.24.58v15.84q0 .33-.24.58t-.59.25H7.83q-.33 0-.58-.25t-.25-.58V17H2.83q-.33 0-.58-.25T2 16.17V7.83q0-.33.25-.58t.58-.25H7V4.08q0-.33.25-.58t.58-.25zM7 8H3.5v8H7zm7.4 7.2 2-3.2-2-3.2h-1.6l1.2 2.2-1.2 2.2zm-3.6 0 1.2-2.2-1.2-2.2H9.2l2 3.2-2 3.2zm9.2 3.8V5H8.5v2h7.83q.33 0 .58.25t.25.58v8.34q0 .33-.25.58t-.58.25H8.5v2z"/>
+          </svg>
+          <span>Excel</span>
+        </button>
+
         <button
           onClick={handlePrev}
           disabled={currentPage === 1}

@@ -105,15 +105,20 @@ export default function InterviewDocket({
   onSelectRow,
   storageKey = 'interview_docket_dismissed',
 }: InterviewDocketProps) {
-  const [isDismissed, setIsDismissed] = useState(false);
+  // Not open by default: default to true (collapsed)
+  const [isDismissed, setIsDismissed] = useState(true);
   const [viewScope, setViewScope] = useState<'today_tomorrow' | 'all_active'>('today_tomorrow');
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
-  // Load dismissed state from localStorage
+  // Load dismissed state from localStorage (defaults to collapsed/dismissed unless explicitly expanded)
   useEffect(() => {
     try {
       const stored = localStorage.getItem(storageKey);
-      if (stored === 'true') setIsDismissed(true);
+      if (stored === 'false') {
+        setIsDismissed(false);
+      } else {
+        setIsDismissed(true);
+      }
     } catch {}
   }, [storageKey]);
 
@@ -243,26 +248,78 @@ export default function InterviewDocket({
     return todayTomorrowList;
   }, [viewScope, todayTomorrowList, parsedInterviews]);
 
+  // Check for upcoming or live interview today
+  const activeTodayInterview = useMemo(() => {
+    return (
+      todayInterviews.find((i) => i.countdownType === 'live') ||
+      todayInterviews.find((i) => i.countdownType === 'urgent') ||
+      todayInterviews.find((i) => i.countdownType === 'upcoming')
+    );
+  }, [todayInterviews]);
+
+  const hasInterviewSoon = useMemo(() => {
+    if (!activeTodayInterview) return false;
+    if (activeTodayInterview.countdownType === 'live' || activeTodayInterview.countdownType === 'urgent') {
+      return true;
+    }
+    const diffMs = activeTodayInterview.timestamp - currentTime.getTime();
+    const diffMins = Math.round(diffMs / (1000 * 60));
+    return diffMins > 0 && diffMins <= 180;
+  }, [activeTodayInterview, currentTime]);
+
   // Render dismissed collapsed banner
   if (isDismissed) {
     return (
-      <div className="w-full mb-2.5 flex items-center justify-between px-3 py-1.5 rounded-lg border theme-border bg-slate-50/80 text-xs shadow-2xs">
-        <div className="flex items-center gap-2">
-          <span className="text-sm">📅</span>
-          <span className="font-bold text-slate-800">Today & Tomorrow&apos;s Docket:</span>
-          <span className="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-full text-[11px]">
-            {todayInterviews.length} Today
-          </span>
-          <span className="bg-blue-100 text-blue-900 border border-blue-300 font-bold px-2 py-0.5 rounded-full text-[11px]">
-            {tomorrowInterviews.length} Tomorrow
-          </span>
+      <div
+        className={`w-full mb-2.5 flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 rounded-xl border text-xs shadow-2xs transition-all ${
+          hasInterviewSoon
+            ? 'border-amber-400/90 bg-gradient-to-r from-amber-100/95 via-orange-100/90 to-amber-100/95 text-amber-950 ring-2 ring-amber-400/60 animate-pulse'
+            : 'border-slate-200 theme-border bg-slate-50/80 theme-surface text-slate-800'
+        }`}
+      >
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {hasInterviewSoon ? (
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
+            </span>
+          ) : (
+            <span className="text-sm">📅</span>
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-extrabold tracking-tight">
+              {hasInterviewSoon ? '⚡ Interview Alert:' : "Today & Tomorrow's Docket:"}
+            </span>
+
+            {hasInterviewSoon && activeTodayInterview && (
+              <span className="px-2 py-0.5 rounded-full font-bold text-[11px] bg-red-600 text-white shadow-2xs">
+                {activeTodayInterview.countdownText} — {activeTodayInterview.candidate} ({activeTodayInterview.client})
+              </span>
+            )}
+
+            <div className="flex items-center gap-1.5">
+              <span className="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-full text-[11px]">
+                {todayInterviews.length} Today
+              </span>
+              <span className="bg-blue-100 text-blue-900 border border-blue-300 font-bold px-2 py-0.5 rounded-full text-[11px]">
+                {tomorrowInterviews.length} Tomorrow
+              </span>
+            </div>
+          </div>
         </div>
+
         <button
           type="button"
           onClick={toggleDismiss}
-          className="text-xs font-bold text-amber-700 hover:text-amber-800 hover:underline cursor-pointer flex items-center gap-1"
+          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+            hasInterviewSoon
+              ? 'bg-amber-600 hover:bg-amber-700 text-white font-extrabold ring-1 ring-amber-400'
+              : 'text-amber-800 bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300'
+          }`}
         >
           <span>📌 Expand Docket</span>
+          <span className="text-[10px]">▼</span>
         </button>
       </div>
     );
