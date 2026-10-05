@@ -115,6 +115,23 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+function getColumnWidthClass(header: string): string {
+  const h = header.toLowerCase();
+  if (h === 'date') return 'min-w-[110px] max-w-[130px] whitespace-nowrap';
+  if (h.includes('time')) return 'min-w-[190px] max-w-[280px]';
+  if (h.includes('consultant') || h.includes('candidate')) return 'min-w-[180px] max-w-[260px]';
+  if (h.includes('position') || h.includes('role')) return 'min-w-[210px] max-w-[340px]';
+  if (h.includes('vendor') || h.includes('client')) return 'min-w-[130px] max-w-[190px]';
+  if (h.includes('status')) return 'min-w-[130px] max-w-[180px] whitespace-nowrap';
+  if (h.includes('marketer') || h.includes('recruiter')) return 'min-w-[140px] max-w-[180px]';
+  if (h.includes('support')) return 'min-w-[115px] max-w-[150px]';
+  if (h.includes('email')) return 'min-w-[190px] max-w-[260px]';
+  if (h.includes('phone')) return 'min-w-[125px] max-w-[160px] whitespace-nowrap';
+  if (h.includes('rate') || h.includes('price')) return 'min-w-[100px] max-w-[130px] whitespace-nowrap';
+  if (h.includes('update') || h.includes('notes')) return 'min-w-[260px] max-w-[480px]';
+  return 'min-w-[130px] max-w-[220px]';
+}
+
 export default function TeamSubmissionsPage() {
   const [sheetData, setSheetData] = useState<SheetData>({
     configured: false,
@@ -652,7 +669,7 @@ export default function TeamSubmissionsPage() {
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'metrics'
                   ? 'theme-btn shadow-xs'
-                  : 'theme-text-muted hover:theme-text'
+                  : 'text-slate-700 hover:text-slate-950 font-bold hover:bg-black/5'
               }`}
             >
               <span>📊</span>
@@ -664,7 +681,7 @@ export default function TeamSubmissionsPage() {
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'table'
                   ? 'theme-btn shadow-xs'
-                  : 'theme-text-muted hover:theme-text'
+                  : 'text-slate-700 hover:text-slate-950 font-bold hover:bg-black/5'
               }`}
             >
               <span>📋</span>
@@ -858,7 +875,7 @@ export default function TeamSubmissionsPage() {
                         return (
                           <th
                             key={header}
-                            className="px-3 py-2 font-bold select-none relative whitespace-normal break-words max-w-[150px] border-r last:border-r-0 theme-table-border"
+                            className={`px-3 py-2.5 font-bold select-none relative border-r last:border-r-0 theme-table-border text-[11.5px] uppercase tracking-wider ${getColumnWidthClass(header)}`}
                           >
                             <div className="flex items-center justify-between gap-1">
                               <span className="leading-snug">{header}</span>
@@ -1045,7 +1062,7 @@ export default function TeamSubmissionsPage() {
                               return (
                                 <td
                                   key={header}
-                                  className="px-2.5 py-2 border-r last:border-r-0 whitespace-normal break-words max-w-[200px] min-w-[120px] leading-snug align-top"
+                                  className={`px-2.5 py-2 border-r last:border-r-0 leading-snug align-top ${getColumnWidthClass(header)}`}
                                   style={{
                                     borderColor: 'var(--color-table-border)',
                                     color: 'var(--color-text-body)',
@@ -1087,8 +1104,8 @@ export default function TeamSubmissionsPage() {
                   <span className="text-3xl font-extrabold theme-text">
                     {analytics.totalSubmissions}
                   </span>
-                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    Live Synced
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs">
+                    ● Live Synced
                   </span>
                 </div>
                 <span className="text-[11px] theme-text-muted">
@@ -1264,12 +1281,12 @@ export default function TeamSubmissionsPage() {
                                 {count === 0 ? (
                                   <span className="opacity-30 text-[11px]">-</span>
                                 ) : isTopInMonth ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[11px] bg-amber-100 text-amber-950 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700 shadow-2xs hover:scale-105 transition-transform">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-black text-xs bg-amber-300 text-amber-950 border border-amber-500 font-mono shadow-xs hover:scale-105 transition-transform">
                                     <span>👑</span>
                                     <span>{count}</span>
                                   </span>
                                 ) : (
-                                  <span className="font-bold text-[11px] theme-text hover:underline">
+                                  <span className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-blue-600 transition-colors">
                                     {count}
                                   </span>
                                 )}
@@ -1279,13 +1296,13 @@ export default function TeamSubmissionsPage() {
 
                           {/* Total */}
                           <td className="px-3 py-2.5 text-center font-mono font-extrabold border-r theme-border tabular-nums text-xs">
-                            <span className="inline-block px-2 py-0.5 rounded-md theme-surface-alt border theme-border theme-text">
+                            <span className="inline-block px-2.5 py-0.5 rounded-md font-mono font-black text-xs bg-slate-100 dark:bg-white/10 text-slate-950 dark:text-white border border-slate-300/70">
                               {rec.total}
                             </span>
                           </td>
 
                           {/* Average / Month */}
-                          <td className="px-3 py-2.5 text-center font-mono font-semibold border-r theme-border text-xs text-emerald-600 dark:text-emerald-400">
+                          <td className="px-3 py-2.5 text-center font-mono font-black border-r theme-border text-xs text-slate-900 dark:text-slate-100">
                             {rec.avgPerMonth}
                           </td>
 
