@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import CellBadge from './CellBadge';
+import CellSmartEditor from './CellSmartEditor';
 import { normalizeName, getInitials } from '@/app/utils/nameUtils';
 
 interface SchemaInfo {
@@ -1095,38 +1096,35 @@ export default function TableClient({
                               }}
                               title="Click to edit or acknowledge"
                             >
-                              {isEditing ? (
-                                <input
-                                  type="text"
-                                  autoFocus
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  onBlur={() => saveCellEdit(row.id, header)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') saveCellEdit(row.id, header);
-                                    if (e.key === 'Escape') setEditingCell(null);
-                                  }}
-                                  className="w-full p-1 border rounded text-xs focus:outline-none theme-input theme-border"
-                                  style={{ borderColor: 'var(--color-accent)' }}
+                              {isEditing && (
+                                <CellSmartEditor
+                                  rowId={row.id}
+                                  header={header}
+                                  initialValue={val}
+                                  schema={columnSchema[header]}
+                                  uniqueValues={columnUniqueOptions[header]}
+                                  isNearRight={colIndex >= columnHeaders.length - 2}
+                                  isNearBottom={rowIndex >= currentRows.length - 2 && currentRows.length > 3}
+                                  onSave={(newVal) => saveCellEdit(row.id, header, newVal)}
+                                  onCancel={() => setEditingCell(null)}
                                 />
-                              ) : (
-                                <div className="flex flex-col gap-1 items-start justify-between min-h-[24px]">
-                                  {colIndex === 0 && isNewRow && (
-                                    <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wide shadow-2xs">
-                                      ✨ New Row
-                                    </span>
-                                  )}
-                                  {isUpdatedCell && (
-                                    <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-2xs">
-                                      ⚡ Updated
-                                    </span>
-                                  )}
-                                  <CellBadge header={header} value={val} />
-                                  {status === 'saving' && <span className="text-[10px] text-amber-600 font-semibold animate-pulse">Syncing...</span>}
-                                  {status === 'saved' && <span className="text-[10px] text-green-700 font-semibold">Saved ✓</span>}
-                                  {status === 'error' && <span className="text-[10px] text-red-600 font-semibold">Error ✕</span>}
-                                </div>
                               )}
+                              <div className={`flex flex-col gap-1 items-start justify-between min-h-[24px] ${isEditing ? 'opacity-25 pointer-events-none' : ''}`}>
+                                {colIndex === 0 && isNewRow && (
+                                  <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wide shadow-2xs">
+                                    ✨ New Row
+                                  </span>
+                                )}
+                                {isUpdatedCell && (
+                                  <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-2xs">
+                                    ⚡ Updated
+                                  </span>
+                                )}
+                                <CellBadge header={header} value={val} />
+                                {status === 'saving' && <span className="text-[10px] text-amber-600 font-semibold animate-pulse">Syncing...</span>}
+                                {status === 'saved' && <span className="text-[10px] text-green-700 font-semibold">Saved ✓</span>}
+                                {status === 'error' && <span className="text-[10px] text-red-600 font-semibold">Error ✕</span>}
+                              </div>
                             </td>
                           );
                         })}
