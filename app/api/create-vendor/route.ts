@@ -3,8 +3,8 @@ import { Client } from '@notionhq/client';
 
 export const dynamic = 'force-dynamic';
 
-const DESI_DB_ID = '345c477f-bdd8-81e4-ab05-dcab933f178e';
-const PV_DB_ID = '345c477f-bdd8-8189-a855-c9b96f250add';
+const DESI_DB_ID = process.env.NOTION_DESI_VENDOR_DATABASE_PARENT_ID || '345c477f-bdd8-81e4-ab05-dcab933f178e';
+const PV_DB_ID = process.env.NOTION_PV_VENDOR_DATABASE_PARENT_ID || '345c477f-bdd8-8189-a855-c9b96f250add';
 
 export async function POST(request: Request) {
   try {
@@ -53,15 +53,45 @@ export async function POST(request: Request) {
       };
     }
 
-    const newPage = await notion.pages.create({
-      parent: { database_id: parentDbId },
-      properties,
-    });
+    let newPageId = '';
+
+    try {
+      const newPage = await notion.pages.create({
+        parent: { database_id: parentDbId },
+        properties,
+      });
+      newPageId = newPage.id;
+    } catch (createErr: any) {
+      // If validation failed on Contact (email) or Phone (phone_number), retry with fallback to Comments
+      console.warn('Initial vendor create failed, attempting resilient fallback:', createErr?.message);
+      const fallbackProperties: Record<string, any> = {
+        Name: properties.Name,
+      };
+      if (properties.Company) fallbackProperties.Company = properties.Company;
+
+      const extraNotes = [
+        email ? `Email: ${email.trim()}` : null,
+        phone ? `Phone: ${phone.trim()}` : null,
+        comments ? comments.trim() : null,
+      ].filter(Boolean).join('\n');
+
+      if (extraNotes) {
+        fallbackProperties['Comments'] = {
+          rich_text: [{ text: { content: extraNotes } }],
+        };
+      }
+
+      const fallbackPage = await notion.pages.create({
+        parent: { database_id: parentDbId },
+        properties: fallbackProperties,
+      });
+      newPageId = fallbackPage.id;
+    }
 
     return NextResponse.json({
       success: true,
       vendor: {
-        id: newPage.id,
+        id: newPageId,
         name: name?.trim() || 'New Contact',
         company: company?.trim() || '-',
         email: email?.trim() || '-',

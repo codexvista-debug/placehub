@@ -13,6 +13,143 @@ interface VendorRecord {
   lastEdited?: string;
 }
 
+// Intelligent extractor for vendor details from raw text / email signatures
+function parseVendorText(text: string) {
+  if (!text || !text.trim()) {
+    return { company: '', name: '', email: '', phone: '', linkedin: '', detectedCount: 0, emailCount: 0, phoneCount: 0 };
+  }
+
+  // 1. Emails (multiple)
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
+  const rawEmails = text.match(emailRegex) || [];
+  const uniqueEmails = Array.from(new Set(rawEmails.map((e) => e.trim())));
+  const email = uniqueEmails.join(', ');
+
+  // 2. Phones (multiple)
+  const phoneRegex = /(?:(?:\+?\d{1,3}[-\s.]?)?\(?\d{3}\)?[-\s.]?\d{3}[-\s.]?\d{4}(?:\s*(?:ext|x|ext.)\s*\d+)?|\b\d{10}\b)/gi;
+  const rawPhones = text.match(phoneRegex) || [];
+  const uniquePhones = Array.from(
+    new Set(
+      rawPhones
+        .map((p) => p.trim())
+        .filter((p) => {
+          const digits = p.replace(/\D/g, '');
+          return digits.length >= 10 && digits.length <= 15 && !p.startsWith('202');
+        })
+    )
+  );
+  const phone = uniquePhones.join(', ');
+
+  // 3. LinkedIn URL
+  const linkedinMatch = text.match(/https?:\/\/(?:www\.)?linkedin\.com\/[^\s,\n\r]+/i);
+  const linkedin = linkedinMatch ? linkedinMatch[0].trim() : '';
+
+  // 4. Contact / Recruiter Name
+  let name = '';
+  const labelNameMatch = text.match(
+    /(?:Contact(?:\s+Name)?|Recruiter(?:\s+Name)?|Representative|HR(?:\s+Name)?|Name|Candidate(?:\s+Name)?)\s*[:\-]\s*([A-Za-z\s\.\'\-]+?)(?:\n|\r|$|\||,)/i
+  );
+  if (labelNameMatch && labelNameMatch[1]?.trim()) {
+    name = labelNameMatch[1].trim();
+  } else {
+    const signoffMatch = text.match(
+      /(?:Thanks\s*(?:&|and)?\s*Regards|Warm\s+Regards|Best\s+Regards|Kind\s+Regards|Regards|Sincerely|Thanks|Best)\s*,?\s*[\r\n]+\s*([A-Za-z\s\.\'\-]+?)(?:\n|\r|$)/i
+    );
+    if (signoffMatch && signoffMatch[1]?.trim()) {
+      name = signoffMatch[1].trim();
+    } else {
+      const titlePattern = /(?:^|[\r\n])\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*[\r\n]+\s*(?:Senior\s+|Lead\s+|Sr\.?\s+)?(?:Talent\s+Acquisition|Technical\s+Recruiter|Recruiter|Staffing|Account\s+Manager|HR|Resource\s+Manager|Bench\s+Sales)/i;
+      const titleMatch = text.match(titlePattern);
+      if (titleMatch && titleMatch[1]?.trim()) {
+        name = titleMatch[1].trim();
+      }
+    }
+  }
+
+  // 5. Company Name
+  let company = '';
+  const labelCompanyMatch = text.match(
+    /(?:Company(?:\s+Name)?|Vendor(?:\s+Name)?|Employer|Agency|Firm|Organization|Client)\s*[:\-]\s*([A-Za-z0-9&.,\- ]+?)(?:\n|\r|$|\|)/i
+  );
+  if (labelCompanyMatch && labelCompanyMatch[1]?.trim()) {
+    company = labelCompanyMatch[1].trim().replace(/[.,;:\-]+$/, '');
+  } else {
+    const suffixMatch = text.match(
+      /(?:^|[\r\n])\s*([A-Za-z0-9&.,\- ]+?\b(?:Inc\.?|LLC\.?|Corp\.?|Corporation|Technologies|Tech|Solutions|Systems|Group|Staffing|Services|Consulting|Infotech|Enterprises|Global))\b/i
+    );
+    if (suffixMatch && suffixMatch[1]?.trim()) {
+      company = suffixMatch[1].trim().replace(/[.,;:\-]+$/, '');
+    }
+  }
+
+  // Fallback: line-by-line inspection if name or company is still missing
+  const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean);
+  const nonContactLines = lines.filter((l) => {
+    if (/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(l)) return false;
+    if (/(?:\+?\d{1,3}[-\s.]?)?\(?\d{3}\)?[-\s.]?\d{3}[-\s.]?\d{4}/.test(l)) return false;
+    if (l.includes('linkedin.com') || l.includes('http://') || l.includes('https://')) return false;
+    if (/^(thanks|regards|best|sincerely|hi|hello|dear|cheers)/i.test(l)) return false;
+    if (/^(senior|lead|sr\.?|talent|technical|recruiter|account manager|hr|bench sales)/i.test(l)) return false;
+    return true;
+  });
+
+  // Try matching company by email domain
+  if (!company && uniqueEmails.length > 0) {
+    const domain = uniqueEmails[0].split('@')[1];
+    if (domain) {
+      const domainBase = domain.split('.')[0].toLowerCase();
+      const pub = ['gmail', 'yahoo', 'outlook', 'hotmail', 'icloud', 'aol', 'proton'];
+      if (!pub.includes(domainBase)) {
+        const foundCompanyLine = nonContactLines.find(
+          (l) => l.toLowerCase().includes(domainBase) || domainBase.includes(l.toLowerCase())
+        );
+        if (foundCompanyLine) {
+          company = foundCompanyLine;
+        } else {
+          company = domainBase.charAt(0).toUpperCase() + domainBase.slice(1);
+        }
+      }
+    }
+  }
+
+  // Name fallback from remaining clean lines
+  if (!name) {
+    for (const line of nonContactLines) {
+      if (line !== company && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}$/.test(line)) {
+        name = line;
+        break;
+      }
+    }
+  }
+
+  // Company fallback from remaining clean lines
+  if (!company) {
+    for (const line of nonContactLines) {
+      if (line !== name && line.length > 1 && line.length < 50) {
+        company = line;
+        break;
+      }
+    }
+  }
+
+  let detectedCount = 0;
+  if (company) detectedCount++;
+  if (name) detectedCount++;
+  if (email) detectedCount += uniqueEmails.length;
+  if (phone) detectedCount += uniquePhones.length;
+
+  return {
+    name,
+    company,
+    email,
+    phone,
+    linkedin,
+    detectedCount,
+    emailCount: uniqueEmails.length,
+    phoneCount: uniquePhones.length,
+  };
+}
+
 export default function VendorInfoPage() {
   const [activeTab, setActiveTab] = useState<'desi' | 'pv'>('desi');
   const [desiVendors, setDesiVendors] = useState<VendorRecord[]>([]);
@@ -51,6 +188,7 @@ export default function VendorInfoPage() {
   // Add Vendor Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSavingNew, setIsSavingNew] = useState(false);
+  const [rawVendorText, setRawVendorText] = useState('');
   const [newVendorForm, setNewVendorForm] = useState({
     company: '',
     name: '',
@@ -58,6 +196,11 @@ export default function VendorInfoPage() {
     phone: '',
     comments: '',
   });
+  const [extractedStats, setExtractedStats] = useState<{
+    detectedCount: number;
+    emailCount: number;
+    phoneCount: number;
+  }>({ detectedCount: 0, emailCount: 0, phoneCount: 0 });
 
   // Delete Vendor Modal
   const [vendorToDelete, setVendorToDelete] = useState<VendorRecord | null>(null);
@@ -357,6 +500,33 @@ export default function VendorInfoPage() {
     }
   };
 
+  const handleRawTextChange = (text: string) => {
+    setRawVendorText(text);
+    if (!text.trim()) {
+      setExtractedStats({ detectedCount: 0, emailCount: 0, phoneCount: 0 });
+      return;
+    }
+    const parsed = parseVendorText(text);
+    setNewVendorForm((prev) => ({
+      company: parsed.company || prev.company,
+      name: parsed.name || prev.name,
+      email: parsed.email || prev.email,
+      phone: parsed.phone || prev.phone,
+      comments: prev.comments ? prev.comments : (parsed.linkedin ? parsed.linkedin : ''),
+    }));
+    setExtractedStats({
+      detectedCount: parsed.detectedCount,
+      emailCount: parsed.emailCount,
+      phoneCount: parsed.phoneCount,
+    });
+  };
+
+  const handleResetNewVendor = () => {
+    setRawVendorText('');
+    setNewVendorForm({ company: '', name: '', email: '', phone: '', comments: '' });
+    setExtractedStats({ detectedCount: 0, emailCount: 0, phoneCount: 0 });
+  };
+
   // Handle Add New Vendor Form Submit
   const handleCreateVendor = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -386,7 +556,7 @@ export default function VendorInfoPage() {
       }
 
       setIsAddModalOpen(false);
-      setNewVendorForm({ company: '', name: '', email: '', phone: '', comments: '' });
+      handleResetNewVendor();
       triggerToast(`Added vendor to ${activeTab === 'desi' ? 'Desi' : 'PV'} Vendor Info ✓`);
     } catch (err: any) {
       alert(err.message || 'Error creating vendor');
@@ -1368,111 +1538,223 @@ export default function VendorInfoPage() {
       {/* Add New Vendor Modal Dialog */}
       {isAddModalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
-          onClick={() => !isSavingNew && setIsAddModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 overflow-y-auto"
+          onClick={() => {
+            if (!isSavingNew) {
+              setIsAddModalOpen(false);
+              handleResetNewVendor();
+            }
+          }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 text-slate-900 flex flex-col gap-5 animate-in zoom-in-95 duration-150"
+            className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full p-6 text-slate-900 flex flex-col gap-4 animate-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-lg font-black text-slate-900">Add New Vendor</h3>
-                <p className="text-xs text-slate-500">
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                  <span>✨</span> Add New Vendor
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
                   Target Database: <strong className="text-orange-600 font-bold">{activeTab === 'desi' ? 'Desi Vendor Info' : 'PV Vendor Info'}</strong>
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  handleResetNewVendor();
+                }}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold p-1 rounded-md hover:bg-slate-100 transition-colors"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateVendor} className="flex flex-col gap-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Company / Vendor Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Technogen Inc, Judge, Brillio..."
-                  value={newVendorForm.company}
-                  onChange={(e) => setNewVendorForm({ ...newVendorForm, company: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+            <form onSubmit={handleCreateVendor} className="flex flex-col gap-4">
+              {/* 1. Unified Raw Text Area (Text Extractor) */}
+              <div className="flex flex-col gap-1.5 p-3.5 rounded-xl bg-orange-50/60 border border-orange-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-orange-950 flex items-center gap-1.5">
+                    <span>⚡</span> Smart Text Extractor
+                  </label>
+                  {rawVendorText && (
+                    <button
+                      type="button"
+                      onClick={() => handleRawTextChange('')}
+                      className="text-[11px] text-orange-700 hover:text-orange-900 font-semibold underline cursor-pointer"
+                    >
+                      Clear Text
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-orange-900/80 leading-normal">
+                  Paste an email signature, recruiter pitch, message, or vendor contact block below. Company, contact name, email(s), and phone(s) are automatically extracted into their respective columns.
+                </p>
+                <textarea
+                  rows={4}
+                  value={rawVendorText}
+                  onChange={(e) => handleRawTextChange(e.target.value)}
+                  placeholder={`Paste vendor details or email signature here... e.g.:
+
+Thanks & Regards,
+Ranjitha Shetty
+Senior Technical Recruiter | Technogen Inc
+ranjitha@technogeninc.com, rs@technogeninc.com
+Direct: +1 (703) 555-0199 | Cell: +1 (703) 555-0122`}
+                  className="w-full mt-1 px-3 py-2 text-xs font-sans border border-orange-200 rounded-lg bg-white text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all shadow-2xs leading-relaxed"
                 />
+
+                {/* Live Extraction Status Badges */}
+                {rawVendorText.trim() && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
+                    <span className="font-bold text-orange-900">Detected:</span>
+                    {newVendorForm.company ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
+                        🏢 {newVendorForm.company}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium border border-slate-200">
+                        🏢 No company
+                      </span>
+                    )}
+                    {newVendorForm.name ? (
+                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold border border-blue-300">
+                        👤 {newVendorForm.name}
+                      </span>
+                    ) : null}
+                    {newVendorForm.email ? (
+                      <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-bold border border-purple-300">
+                        ✉️ {extractedStats.emailCount > 1 ? `${extractedStats.emailCount} Emails` : 'Email'}
+                      </span>
+                    ) : null}
+                    {newVendorForm.phone ? (
+                      <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold border border-teal-300">
+                        📞 {extractedStats.phoneCount > 1 ? `${extractedStats.phoneCount} Phones` : 'Phone'}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Contact / Recruiter Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Ranjitha, Tushar..."
-                  value={newVendorForm.name}
-                  onChange={(e) => setNewVendorForm({ ...newVendorForm, name: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="recruiter@company.com"
-                    value={newVendorForm.email}
-                    onChange={(e) => setNewVendorForm({ ...newVendorForm, email: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                  />
+              {/* 2. Extracted Fields Grid (Editable & verified before saving) */}
+              <div className="flex flex-col gap-2.5">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Extracted Columns (Verify or edit)
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
-                  <input
-                    type="text"
-                    placeholder="+1 (555) 000-0000"
-                    value={newVendorForm.phone}
-                    onChange={(e) => setNewVendorForm({ ...newVendorForm, phone: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Company / Vendor Name <span className="text-orange-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Technogen Inc, Judge..."
+                      value={newVendorForm.company}
+                      onChange={(e) => setNewVendorForm({ ...newVendorForm, company: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Contact / Recruiter Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Ranjitha Shetty, Tushar..."
+                      value={newVendorForm.name}
+                      onChange={(e) => setNewVendorForm({ ...newVendorForm, name: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Email Address(es) <span className="text-slate-400 font-normal">(Multiple supported)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. recruiter@company.com, alternate@company.com"
+                      value={newVendorForm.email}
+                      onChange={(e) => setNewVendorForm({ ...newVendorForm, email: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Phone Number(s) <span className="text-slate-400 font-normal">(Multiple supported)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +1 (555) 000-0000, +1 (555) 111-2222"
+                      value={newVendorForm.phone}
+                      onChange={(e) => setNewVendorForm({ ...newVendorForm, phone: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Comments / LinkedIn Profile URL</label>
+              {/* 3. Separate Note / Comments for manual entry */}
+              <div className="pt-1">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Comments / Note <span className="text-slate-400 font-normal">(Manual entry)</span>
+                  </label>
+                </div>
                 <textarea
                   rows={2}
-                  placeholder="Notes, LinkedIn link, specializations..."
+                  placeholder="Enter manual notes, specializations, rate terms, or custom remarks..."
                   value={newVendorForm.comments}
                   onChange={(e) => setNewVendorForm({ ...newVendorForm, comments: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none leading-relaxed placeholder:text-slate-400"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              {/* 4. Action Buttons */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  disabled={isSavingNew}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+                  onClick={handleResetNewVendor}
+                  disabled={isSavingNew || (!rawVendorText && !newVendorForm.company && !newVendorForm.name && !newVendorForm.email && !newVendorForm.phone && !newVendorForm.comments)}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 disabled:opacity-30 transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Reset Form
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSavingNew}
-                  className="px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                >
-                  {isSavingNew ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Saving to Notion...</span>
-                    </>
-                  ) : (
-                    <span>Save to Notion</span>
-                  )}
-                </button>
+
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddModalOpen(false);
+                      handleResetNewVendor();
+                    }}
+                    disabled={isSavingNew}
+                    className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingNew}
+                    className="px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSavingNew ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Saving to Notion...</span>
+                      </>
+                    ) : (
+                      <span>Save to Notion</span>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
