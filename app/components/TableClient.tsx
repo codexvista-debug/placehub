@@ -201,7 +201,10 @@ export default function TableClient({
     x: number;
     y: number;
     row: Record<string, string>;
+    cellHeader?: string;
+    cellValue?: string;
   } | null>(null);
+  const [copiedFeedback, setCopiedFeedback] = useState<string | null>(null);
 
   // Close context menu on outside click
   useEffect(() => {
@@ -1189,6 +1192,18 @@ export default function TableClient({
                                 if (isUpdatedCell) setUpdatedCellKeys((prev) => { const n = new Set(prev); n.delete(cellKey); return n; });
                                 if (isNewRow) setNewRowIds((prev) => { const n = new Set(prev); n.delete(row.id); return n; });
                               }}
+                              onContextMenu={(e) => {
+                                if (isEditing) return;
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setContextMenu({
+                                  x: e.clientX,
+                                  y: e.clientY,
+                                  row,
+                                  cellHeader: header,
+                                  cellValue: row[header] || '',
+                                });
+                              }}
                               className={`px-3 py-2.5 border-r last:border-r-0 relative cursor-pointer transition-colors leading-snug align-top ${getColumnWidthClass(header)}`}
                               style={{
                                 borderColor: 'var(--color-table-border)',
@@ -1977,17 +1992,107 @@ export default function TableClient({
       {/* Right-click Floating Context Menu */}
       {contextMenu && (
         <div
-          className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-2xl py-1 w-52 text-xs font-semibold text-slate-800 animate-in fade-in zoom-in-95 duration-75"
+          className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-2xl py-1.5 w-64 text-xs font-semibold text-slate-800 animate-in fade-in zoom-in-95 duration-75 select-none"
           style={{
-            left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 220 : contextMenu.x),
-            top: Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 150 : contextMenu.y),
+            left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 270 : contextMenu.x),
+            top: Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 200 : contextMenu.y),
           }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100 flex items-center justify-between">
-            <span>Row Actions</span>
+            <span className="truncate max-w-[170px]">
+              {contextMenu.cellHeader ? `${contextMenu.cellHeader}` : 'Row Actions'}
+            </span>
             <span className="text-[9px] font-mono text-slate-400">Right-click</span>
           </div>
+
+          {/* 1. Copy Clicked Cell Value */}
+          {contextMenu.cellHeader && (
+            <button
+              type="button"
+              disabled={!contextMenu.cellValue || contextMenu.cellValue === '-'}
+              onClick={() => {
+                const textToCopy = contextMenu.cellValue || '';
+                if (textToCopy && textToCopy !== '-') {
+                  navigator.clipboard.writeText(textToCopy);
+                  setCopiedFeedback(`Copied ${contextMenu.cellHeader}: "${textToCopy.length > 28 ? textToCopy.slice(0, 28) + '...' : textToCopy}"`);
+                  setTimeout(() => setCopiedFeedback(null), 2500);
+                }
+                setContextMenu(null);
+              }}
+              className="w-full text-left px-3 py-2 hover:bg-slate-50 text-slate-800 flex items-start gap-2.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed group"
+            >
+              <span className="text-sm mt-0.5">📋</span>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                  Copy {contextMenu.cellHeader}
+                </span>
+                {contextMenu.cellValue && contextMenu.cellValue !== '-' ? (
+                  <span className="text-[10.5px] font-mono text-slate-500 truncate mt-0.5 block max-w-full">
+                    {contextMenu.cellValue}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-400 italic">Empty cell</span>
+                )}
+              </div>
+            </button>
+          )}
+
+          {/* 2. Optional: Copy Candidate Name if clicked cell was something else */}
+          {(() => {
+            const candidateName =
+              contextMenu.row['Consultant Name'] ||
+              contextMenu.row['Candidate'] ||
+              getField(contextMenu.row, ['Consultant Name', 'Candidate', 'Consultant']) ||
+              '';
+            const isCandidateCol = contextMenu.cellHeader && 
+              (contextMenu.cellHeader.toLowerCase().includes('candidate') || contextMenu.cellHeader.toLowerCase().includes('consultant'));
+
+            if (!candidateName || isCandidateCol) return null;
+
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(candidateName);
+                  setCopiedFeedback(`Copied Candidate: "${candidateName}"`);
+                  setTimeout(() => setCopiedFeedback(null), 2500);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-slate-600 flex items-center gap-2 transition-colors cursor-pointer border-t border-slate-100 text-[11px]"
+              >
+                <span className="text-xs">👤</span>
+                <span className="truncate">Copy Candidate: <strong className="text-slate-800 font-semibold">{candidateName}</strong></span>
+              </button>
+            );
+          })()}
+
+          {/* Fallback if right-clicked on row without a specific cell */}
+          {!contextMenu.cellHeader && (() => {
+            const candidateName =
+              contextMenu.row['Consultant Name'] ||
+              contextMenu.row['Candidate'] ||
+              getField(contextMenu.row, ['Consultant Name', 'Candidate', 'Consultant']) ||
+              '';
+            if (!candidateName) return null;
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(candidateName);
+                  setCopiedFeedback(`Copied Candidate: "${candidateName}"`);
+                  setTimeout(() => setCopiedFeedback(null), 2500);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-slate-50 text-slate-700 font-semibold flex items-center gap-2 transition-colors cursor-pointer border-t border-slate-100"
+              >
+                <span>📋</span> Copy Candidate Name
+              </button>
+            );
+          })()}
+
+          {/* 3. Delete Placement Action */}
+          <div className="border-t border-slate-100 my-0.5" />
           <button
             type="button"
             onClick={() => {
@@ -1998,21 +2103,14 @@ export default function TableClient({
           >
             <span>🗑️</span> Delete Placement...
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              const textToCopy =
-                contextMenu.row['Consultant Name'] ||
-                contextMenu.row['Candidate'] ||
-                contextMenu.row['Date'] ||
-                '';
-              if (textToCopy) navigator.clipboard.writeText(textToCopy);
-              setContextMenu(null);
-            }}
-            className="w-full text-left px-3 py-2 hover:bg-slate-100 text-slate-700 font-semibold flex items-center gap-2 transition-colors cursor-pointer border-t border-slate-100"
-          >
-            <span>📋</span> Copy Candidate Name
-          </button>
+        </div>
+      )}
+
+      {/* Copied Feedback Toast Notification */}
+      {copiedFeedback && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900/95 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 border border-slate-700 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <span className="text-emerald-400 font-bold text-sm">✓</span>
+          <span className="truncate max-w-sm">{copiedFeedback}</span>
         </div>
       )}
 
