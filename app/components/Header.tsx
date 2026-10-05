@@ -74,14 +74,34 @@ export default function Header() {
             title="Go to Live Table"
           >
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-colors"
-              style={{
-                backgroundColor: 'var(--color-header-logo-bg)',
-                color: '#ffffff',
-              }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center shadow-xs transition-transform hover:scale-105 border border-slate-200/80 bg-white"
             >
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M12 14c-2.76 0-5 1.79-5 4 0 1.66 1.34 3 3 3h4c1.66 0 3-1.34 3-3 0-2.21-2.24-4-5-4zm-6.5-3c-1.38 0-2.5 1.12-2.5 2.5S4.12 16 5.5 16 8 14.88 8 13.5 6.88 11 5.5 11zm13 0c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zm-11-5C6.12 3 5 4.12 5 5.5S6.12 8 7.5 8 10 6.88 10 5.5 8.88 3 7.5 3zm10 0C16.12 3 15 4.12 15 5.5S16.12 8 17.5 8 19 6.88 19 5.5 17.88 3 16.5 3z"/>
+              <svg className="w-5 h-5 drop-shadow-2xs" viewBox="0 0 24 24" fill="none">
+                {/* 1st Paw Finger (Leftmost / Dewclaw - Cool Grey) */}
+                <path
+                  d="M5.5 11c-1.38 0-2.5 1.12-2.5 2.5S4.12 16 5.5 16 8 14.88 8 13.5 6.88 11 5.5 11z"
+                  fill="#94a3b8"
+                />
+                {/* 2nd Paw Finger (Upper Left - Tiger Orange) */}
+                <path
+                  d="M7.5 3C6.12 3 5 4.12 5 5.5S6.12 8 7.5 8 10 6.88 10 5.5 8.88 3 7.5 3z"
+                  fill="#f97316"
+                />
+                {/* 3rd Paw Finger (Upper Right - Tiger Orange) */}
+                <path
+                  d="M16.5 3C15.12 3 14 4.12 14 5.5S15.12 8 16.5 8 19 6.88 19 5.5 17.88 3 16.5 3z"
+                  fill="#f97316"
+                />
+                {/* 4th Paw Finger (Rightmost - Tiger Orange) */}
+                <path
+                  d="M18.5 11c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5z"
+                  fill="#f97316"
+                />
+                {/* Main Paw Pad (Bottom Center - Tiger Orange) */}
+                <path
+                  d="M12 14c-2.76 0-5 1.79-5 4 0 1.66 1.34 3 3 3h4c1.66 0 3-1.34 3-3 0-2.21-2.24-4-5-4z"
+                  fill="#f97316"
+                />
               </svg>
             </div>
             <span

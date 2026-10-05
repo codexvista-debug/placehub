@@ -46,13 +46,15 @@ function LoginFormContent() {
       {/* Brand Header */}
       <div className="flex flex-col items-center text-center gap-3">
         <div
-          className="w-14 h-14 rounded-2xl font-black text-2xl flex items-center justify-center shadow-md"
-          style={{
-            backgroundColor: 'var(--color-header-logo-bg)',
-            color: 'var(--color-header-bg)',
-          }}
+          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-md bg-white border border-slate-200/80"
         >
-          🔒
+          <svg className="w-8 h-8 drop-shadow-2xs" viewBox="0 0 24 24" fill="none">
+            <path d="M5.5 11c-1.38 0-2.5 1.12-2.5 2.5S4.12 16 5.5 16 8 14.88 8 13.5 6.88 11 5.5 11z" fill="#94a3b8" />
+            <path d="M7.5 3C6.12 3 5 4.12 5 5.5S6.12 8 7.5 8 10 6.88 10 5.5 8.88 3 7.5 3z" fill="#f97316" />
+            <path d="M16.5 3C15.12 3 14 4.12 14 5.5S15.12 8 16.5 8 19 6.88 19 5.5 17.88 3 16.5 3z" fill="#f97316" />
+            <path d="M18.5 11c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5z" fill="#f97316" />
+            <path d="M12 14c-2.76 0-5 1.79-5 4 0 1.66 1.34 3 3 3h4c1.66 0 3-1.34 3-3 0-2.21-2.24-4-5-4z" fill="#f97316" />
+          </svg>
         </div>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight theme-text">
