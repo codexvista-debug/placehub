@@ -4,8 +4,8 @@ import { Client } from '@notionhq/client';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const DESI_DATA_SOURCE_ID = process.env.NOTION_DESI_VENDOR_DATABASE_ID || 'a93c477f-bdd8-8317-8801-0778a70d9199';
-const PV_DATA_SOURCE_ID = process.env.NOTION_PV_VENDOR_DATABASE_ID || '314c477f-bdd8-82d2-9052-07b5410c4f98';
+const DESI_DATA_SOURCE_ID = process.env.NOTION_DESI_VENDOR_DATABASE_ID || '345c477f-bdd8-81d6-b6c7-000b39714d13';
+const PV_DATA_SOURCE_ID = process.env.NOTION_PV_VENDOR_DATABASE_ID || '345c477f-bdd8-8172-89fd-000b467e721e';
 
 function extractPropValue(prop: any): string {
   if (!prop) return '-';

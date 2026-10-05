@@ -3,8 +3,8 @@ import { Client } from '@notionhq/client';
 
 export const dynamic = 'force-dynamic';
 
-const DESI_DB_ID = '3edc477f-bdd8-808c-821a-eae3cd6c37c4';
-const PV_DB_ID = '3edc477f-bdd8-8068-be4d-e18986b17634';
+const DESI_DB_ID = '345c477f-bdd8-81e4-ab05-dcab933f178e';
+const PV_DB_ID = '345c477f-bdd8-8189-a855-c9b96f250add';
 
 export async function POST(request: Request) {
   try {
