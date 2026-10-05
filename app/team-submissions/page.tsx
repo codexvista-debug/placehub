@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import CellBadge from '../components/CellBadge';
-import InterviewDocket from '../components/InterviewDocket';
 import { normalizeName, getInitials } from '@/app/utils/nameUtils';
 
 interface SheetData {
@@ -284,25 +283,6 @@ export default function TeamSubmissionsPage() {
   };
   const handlePrev = () => {
     if (currentPage > 1) setCurrentPage((p) => p - 1);
-  };
-
-  const handleDocketSelectRow = (rowId: string) => {
-    setViewMode('table');
-    const rowIndex = filteredAndSortedRows.findIndex((r) => r.id === rowId);
-    if (rowIndex !== -1) {
-      const targetPage = Math.floor(rowIndex / rowsPerPage) + 1;
-      if (targetPage !== currentPage) {
-        setCurrentPage(targetPage);
-      }
-    }
-    setHighlightedRowId(rowId);
-    setTimeout(() => {
-      const el = document.getElementById(`row-${rowId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 150);
-    setTimeout(() => setHighlightedRowId(null), 3500);
   };
 
   const toggleValueFilter = (header: string, option: string) => {
@@ -772,14 +752,6 @@ export default function TeamSubmissionsPage() {
         {/* ========================================================================= */}
         {viewMode === 'table' && (
           <div className="flex flex-col gap-3">
-            {/* Today & Tomorrow's Quick Docket */}
-            <InterviewDocket
-              data={sheetData.rows}
-              columnHeaders={sheetData.columnHeaders}
-              onSelectRow={handleDocketSelectRow}
-              storageKey="team_submissions_docket_dismissed"
-            />
-
             {/* Pagination & Search Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs font-medium theme-text-muted pb-1">
               <div className="flex items-center gap-3 flex-wrap flex-1">
