@@ -14,53 +14,76 @@ interface TableClientProps {
   columnSchema?: Record<string, SchemaInfo>;
 }
 
-// Smart Chronological Date Parser for Live Table
+const monthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+const monthsAbbr = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+// Smart Chronological Date Parser for Live Table (handles ISO, Notion date strings, composites)
 function parseDateToTimestamp(str: string): number {
-  if (!str || str === '-') return 0;
-  const clean = str.trim().replace(/,/g, ' ').replace(/\s+/g, ' ');
-  const time = Date.parse(clean);
-  if (!isNaN(time)) return time;
+  if (!str || str === '-' || str.trim() === '') return 0;
+  const clean = str.trim();
 
-  const months: Record<string, number> = {
-    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
-  };
+  // 1. Direct ISO format YYYY-MM-DD
+  const isoMatch = clean.match(/\b(20\d{2})[-/](\d{1,2})[-/](\d{1,2})\b/);
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10);
+    const m = parseInt(isoMatch[2], 10) - 1;
+    const d = parseInt(isoMatch[3], 10);
+    return new Date(y, m, d).getTime();
+  }
 
-  const mMatch = clean.match(/([a-zA-Z]{3,9})\s+(\d{1,2})\s+(\d{4})/i);
+  // 2. Standard timestamp parse if possible
+  const parsed = Date.parse(clean);
+  if (!isNaN(parsed)) return parsed;
+
+  // 3. Month name/abbr match (e.g. "Tue Jun 16, 2026 12:30 pm" or "Jun 16 2026")
+  const mMatch = clean.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i);
   if (mMatch) {
-    const mStr = mMatch[1].toLowerCase().substring(0, 3);
-    const m = months[mStr];
-    const d = parseInt(mMatch[2], 10);
-    const y = parseInt(mMatch[3], 10);
-    if (m !== undefined && !isNaN(d) && !isNaN(y)) {
-      return new Date(y, m, d).getTime();
+    const mSub = mMatch[1].toLowerCase().substring(0, 3);
+    const mIdx = monthsAbbr.indexOf(mSub);
+    const dMatch = clean.match(/\b(\d{1,2})\b/);
+    const yMatch = clean.match(/\b(20\d{2})\b/);
+    const d = dMatch ? parseInt(dMatch[1], 10) : 1;
+    const y = yMatch ? parseInt(yMatch[1], 10) : 2026;
+    if (mIdx !== -1) {
+      return new Date(y, mIdx, d).getTime();
     }
   }
 
-  const slashMatch = clean.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  // 4. Slash format MM/DD/YYYY
+  const slashMatch = clean.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](20\d{2}|\d{2})\b/);
   if (slashMatch) {
     const m = parseInt(slashMatch[1], 10) - 1;
     const d = parseInt(slashMatch[2], 10);
-    const y = parseInt(slashMatch[3], 10);
+    let y = parseInt(slashMatch[3], 10);
+    if (y < 100) y += 2000;
     return new Date(y, m, d).getTime();
   }
 
   return 0;
 }
 
-// Extract Month Label from Date String (e.g. "June 2026")
+// Extract Month Label from Date String (e.g. "June 2026" or "January 2026")
 function extractMonthLabel(str: string): string {
-  if (!str || str === '-') return 'Unspecified';
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  const monthsAbbr = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  if (!str || str === '-' || str.trim() === '') return 'Unspecified';
+  const clean = str.trim();
 
-  const clean = str.trim().replace(/,/g, ' ');
-  const wordMatch = clean.match(/([a-zA-Z]{3,9})/);
-  if (wordMatch) {
-    const sub = wordMatch[1].toLowerCase().substring(0, 3);
+  // 1. Check for ISO format YYYY-MM-DD (e.g. "2026-06-16")
+  const isoMatch = clean.match(/\b(20\d{2})[-/](\d{1,2})[-/](\d{1,2})\b/);
+  if (isoMatch) {
+    const y = isoMatch[1];
+    const m = parseInt(isoMatch[2], 10) - 1;
+    if (m >= 0 && m < 12) {
+      return `${monthNames[m]} ${y}`;
+    }
+  }
+
+  // 2. Check for month word / abbreviation anywhere in string (e.g. "Tue Jun 16, 2026", "June 5, 2026")
+  const monthWordMatch = clean.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i);
+  if (monthWordMatch) {
+    const sub = monthWordMatch[1].toLowerCase().substring(0, 3);
     const idx = monthsAbbr.indexOf(sub);
     if (idx !== -1) {
       const yearMatch = clean.match(/\b(20\d{2})\b/);
@@ -69,15 +92,25 @@ function extractMonthLabel(str: string): string {
     }
   }
 
-  const slashMatch = clean.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\b/);
+  // 3. Check for MM/DD/YYYY or M/D/YYYY
+  const slashMatch = clean.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](20\d{2}|\d{2})\b/);
   if (slashMatch) {
     const m = parseInt(slashMatch[1], 10) - 1;
+    let y = slashMatch[3];
+    if (y.length === 2) y = '20' + y;
     if (m >= 0 && m < 12) {
-      return `${monthNames[m]} 2026`;
+      return `${monthNames[m]} ${y}`;
     }
   }
 
   return 'Other';
+}
+
+function compareMonths(a: string, b: string): number {
+  const [mA, yA] = a.split(' ');
+  const [mB, yB] = b.split(' ');
+  if (yA !== yB) return (parseInt(yA) || 0) - (parseInt(yB) || 0);
+  return monthNames.indexOf(mA) - monthNames.indexOf(mB);
 }
 
 // Normalize name casing for cleaner aggregations
@@ -85,6 +118,14 @@ function normalizeName(name: string): string {
   if (!name || name === '-' || name.trim() === '') return 'Unknown';
   const trimmed = name.trim();
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+function getInitials(name: string): string {
+  if (!name || name === '-') return '';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
 // Flexible field getter to handle slightly differing column names in Notion
@@ -112,9 +153,15 @@ export default function TableClient({
   // View Mode: 'table' is the default landing tab as requested
   const [viewMode, setViewMode] = useState<'table' | 'metrics'>('table');
 
-  // Metrics filters
+  // Metrics filters & Dossier inspector state
   const [selectedMarketerFilter, setSelectedMarketerFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('all');
+  const [selectedDossierMarketer, setSelectedDossierMarketer] = useState<string | null>(null);
+  const [dossierMonthFilter, setDossierMonthFilter] = useState<string>('all');
+  const [dossierSearch, setDossierSearch] = useState<string>('');
+  const [dossierPage, setDossierPage] = useState<number>(1);
+  const dossierRowsPerPage = 10;
 
   // Table specific state
   const [currentPage, setCurrentPage] = useState(1);
@@ -332,11 +379,31 @@ export default function TableClient({
   // METRICS & ANALYTICS COMPUTATIONS (LIVE TABLE)
   // ==========================================
   const analytics = useMemo(() => {
+    // 1. Gather all unique months, marketers, and statuses from full dataset
+    const allMonthsSet = new Set<string>();
+    const allMarketersSet = new Set<string>();
+    const allStatusesSet = new Set<string>();
+
+    data.forEach((r) => {
+      const mName = normalizeName(getField(r, ['marketer']));
+      if (mName && mName !== 'Unknown') allMarketersSet.add(mName);
+      const st = (getField(r, ['status']) || '').trim();
+      if (st && st !== '-') allStatusesSet.add(st);
+      const dateVal = getField(r, ['date', 'interview time', 'time']);
+      const mLabel = extractMonthLabel(dateVal);
+      if (mLabel && mLabel !== 'Unspecified' && mLabel !== 'Other') {
+        allMonthsSet.add(mLabel);
+      }
+    });
+
+    const monthList = Array.from(allMonthsSet).sort(compareMonths);
+
     if (data.length === 0) {
       return {
         totalCount: 0,
         uniqueMarketersCount: 0,
         uniqueConsultantsCount: 0,
+        advancedInterviewsCount: 0,
         topClient: { name: 'None', count: 0 },
         marketerLeaderboard: [],
         monthlyTrend: [],
@@ -347,43 +414,48 @@ export default function TableClient({
         statusBreakdown: [],
         marketerNames: [],
         statusNames: [],
+        allMonths: [],
       };
     }
 
-    // Filter by marketer / status if selected
+    // Filter active rows by marketer, status, and month
     const activeRows = data.filter((r) => {
       const marketer = normalizeName(getField(r, ['marketer']));
       const status = (getField(r, ['status']) || '').trim();
+      const dateVal = getField(r, ['date', 'interview time', 'time']);
+      const month = extractMonthLabel(dateVal);
+
       const matchMarketer = selectedMarketerFilter === 'all' || marketer === selectedMarketerFilter;
       const matchStatus = selectedStatusFilter === 'all' || status === selectedStatusFilter;
-      return matchMarketer && matchStatus;
+      const matchMonth = selectedMonthFilter === 'all' || month === selectedMonthFilter;
+      return matchMarketer && matchStatus && matchMonth;
     });
 
     const totalCount = activeRows.length;
 
     // Aggregations
-    const marketerMap: Record<string, { count: number; consultants: Record<string, number>; clients: Record<string, number> }> = {};
-    const consultantMap: Record<string, { count: number; positions: Record<string, number>; marketers: Record<string, number>; statuses: Record<string, number> }> = {};
+    const marketerMap: Record<string, {
+      count: number;
+      monthly: Record<string, number>;
+      consultants: Record<string, number>;
+      clients: Record<string, number>;
+      statuses: Record<string, number>;
+    }> = {};
+
+    const consultantMap: Record<string, {
+      count: number;
+      positions: Record<string, number>;
+      marketers: Record<string, number>;
+      statuses: Record<string, number>;
+    }> = {};
+
     const clientMap: Record<string, number> = {};
     const positionMap: Record<string, number> = {};
     const statusMap: Record<string, number> = {};
     const monthMap: Record<string, number> = {};
+    monthList.forEach((m) => { monthMap[m] = 0; });
 
-    const chronologicalMonths = [
-      'January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026', 'June 2026',
-      'July 2026', 'August 2026', 'September 2026', 'October 2026', 'November 2026', 'December 2026'
-    ];
-    chronologicalMonths.forEach((m) => { monthMap[m] = 0; });
-
-    const allMarketersSet = new Set<string>();
-    const allStatusesSet = new Set<string>();
-
-    data.forEach((r) => {
-      const mName = normalizeName(getField(r, ['marketer']));
-      if (mName && mName !== 'Unknown') allMarketersSet.add(mName);
-      const st = (getField(r, ['status']) || '').trim();
-      if (st && st !== '-') allStatusesSet.add(st);
-    });
+    let advancedInterviewsCount = 0;
 
     activeRows.forEach((row) => {
       const marketer = normalizeName(getField(row, ['marketer']));
@@ -391,20 +463,33 @@ export default function TableClient({
       const client = (getField(row, ['vendor', 'client']) || '').trim();
       const position = (getField(row, ['position', 'role']) || '').trim();
       const status = (getField(row, ['status']) || '').trim();
-      const dateVal = getField(row, ['date', 'time']);
+      const dateVal = getField(row, ['date', 'interview time', 'time']);
       const month = extractMonthLabel(dateVal);
+
+      // Advanced/Final round check
+      const stLower = status.toLowerCase();
+      if (stLower.includes('final') || stLower.includes('cleared') || stLower.includes('placed') || stLower.includes('offer')) {
+        advancedInterviewsCount += 1;
+      }
 
       // 1. Marketer
       if (marketer && marketer !== 'Unknown') {
         if (!marketerMap[marketer]) {
-          marketerMap[marketer] = { count: 0, consultants: {}, clients: {} };
+          marketerMap[marketer] = { count: 0, monthly: {}, consultants: {}, clients: {}, statuses: {} };
+          monthList.forEach((m) => { marketerMap[marketer].monthly[m] = 0; });
         }
         marketerMap[marketer].count += 1;
+        if (month && month !== 'Unspecified') {
+          marketerMap[marketer].monthly[month] = (marketerMap[marketer].monthly[month] || 0) + 1;
+        }
         if (consultant && consultant !== 'Unknown') {
           marketerMap[marketer].consultants[consultant] = (marketerMap[marketer].consultants[consultant] || 0) + 1;
         }
         if (client && client !== '-') {
           marketerMap[marketer].clients[client] = (marketerMap[marketer].clients[client] || 0) + 1;
+        }
+        if (status && status !== '-') {
+          marketerMap[marketer].statuses[status] = (marketerMap[marketer].statuses[status] || 0) + 1;
         }
       }
 
@@ -441,23 +526,31 @@ export default function TableClient({
       }
 
       // 6. Month
-      if (monthMap[month] !== undefined) {
-        monthMap[month] += 1;
-      } else {
-        monthMap[month] = (monthMap[month] || 0) + 1;
+      if (month && month !== 'Unspecified') {
+        if (monthMap[month] !== undefined) {
+          monthMap[month] += 1;
+        } else {
+          monthMap[month] = (monthMap[month] || 0) + 1;
+        }
       }
     });
 
-    // Marketer Leaderboard
+    // Marketer Leaderboard & Matrix Data
     const marketerLeaderboard = Object.entries(marketerMap)
       .map(([name, mData]) => {
         const topConsEntry = Object.entries(mData.consultants).sort((a, b) => b[1] - a[1])[0];
         const topConsultant = topConsEntry ? `${topConsEntry[0]} (${topConsEntry[1]})` : 'Various';
+        const topClientEntry = Object.entries(mData.clients).sort((a, b) => b[1] - a[1])[0];
+        const topClient = topClientEntry ? `${topClientEntry[0]} (${topClientEntry[1]})` : 'Various';
         return {
           name,
           count: mData.count,
+          monthly: mData.monthly,
+          uniqueConsultants: Object.keys(mData.consultants).length,
+          uniqueClients: Object.keys(mData.clients).length,
           percentage: totalCount > 0 ? ((mData.count / totalCount) * 100).toFixed(1) : '0',
           topConsultant,
+          topClient,
         };
       })
       .sort((a, b) => b.count - a.count);
@@ -479,9 +572,9 @@ export default function TableClient({
       })
       .sort((a, b) => b.count - a.count);
 
-    // Monthly Trend
+    // Monthly Trend (Chronological)
     const monthlyTrend = Object.entries(monthMap)
-      .filter(([_, count]) => count > 0)
+      .sort(([mA], [mB]) => compareMonths(mA, mB))
       .map(([month, count]) => ({ month, count }));
 
     // Top Clients
@@ -508,6 +601,7 @@ export default function TableClient({
       totalCount,
       uniqueMarketersCount: Object.keys(marketerMap).length,
       uniqueConsultantsCount: Object.keys(consultantMap).length,
+      advancedInterviewsCount,
       topClient,
       marketerLeaderboard,
       monthlyTrend,
@@ -518,8 +612,34 @@ export default function TableClient({
       statusBreakdown,
       marketerNames: Array.from(allMarketersSet).sort(),
       statusNames: Array.from(allStatusesSet).sort(),
+      allMonths: monthList,
     };
-  }, [data, selectedMarketerFilter, selectedStatusFilter]);
+  }, [data, selectedMarketerFilter, selectedStatusFilter, selectedMonthFilter]);
+
+  // Filtered rows for the selected Marketer Dossier
+  const dossierRows = useMemo(() => {
+    if (!selectedDossierMarketer) return [];
+    return data.filter((row) => {
+      const marketer = normalizeName(getField(row, ['marketer']));
+      if (marketer !== selectedDossierMarketer) return false;
+
+      const dateVal = getField(row, ['date', 'interview time', 'time']);
+      const month = extractMonthLabel(dateVal);
+      if (dossierMonthFilter !== 'all' && month !== dossierMonthFilter) return false;
+
+      if (dossierSearch.trim()) {
+        const q = dossierSearch.toLowerCase();
+        return Object.values(row).some((val) => String(val).toLowerCase().includes(q));
+      }
+      return true;
+    });
+  }, [data, selectedDossierMarketer, dossierMonthFilter, dossierSearch]);
+
+  const dossierTotalPages = Math.ceil(dossierRows.length / dossierRowsPerPage) || 1;
+  const dossierPagedRows = dossierRows.slice(
+    (dossierPage - 1) * dossierRowsPerPage,
+    dossierPage * dossierRowsPerPage
+  );
 
   const renderPaginationBar = (isBottom = false) => (
     <div
@@ -645,6 +765,22 @@ export default function TableClient({
                 </select>
               </div>
 
+              {analytics.allMonths.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold theme-text-muted">Month:</span>
+                  <select
+                    value={selectedMonthFilter}
+                    onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                    className="px-2.5 py-1 border rounded-lg text-xs font-bold theme-input theme-border focus:outline-none"
+                  >
+                    <option value="all">All Months ({analytics.allMonths.length})</option>
+                    {analytics.allMonths.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {analytics.statusNames.length > 0 && (
                 <div className="flex items-center gap-1.5">
                   <span className="text-[11px] font-bold theme-text-muted">Status:</span>
@@ -659,6 +795,20 @@ export default function TableClient({
                     ))}
                   </select>
                 </div>
+              )}
+
+              {(selectedMarketerFilter !== 'all' || selectedMonthFilter !== 'all' || selectedStatusFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSelectedMarketerFilter('all');
+                    setSelectedMonthFilter('all');
+                    setSelectedStatusFilter('all');
+                  }}
+                  className="px-2 py-1 rounded-md text-[11px] font-bold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors cursor-pointer"
+                  title="Reset all filters"
+                >
+                  ✕ Reset
+                </button>
               )}
             </div>
           )}
@@ -997,7 +1147,7 @@ export default function TableClient({
           {/* Top 4 KPI Executive Highlight Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
-            {/* Card 1: Total Live Placements */}
+            {/* Card 1: Total Live Placements & Interviews */}
             <div className="p-4 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col justify-between gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold theme-text-muted uppercase tracking-wider">
@@ -1010,11 +1160,11 @@ export default function TableClient({
                   {analytics.totalCount}
                 </span>
                 <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  Active Records
+                  {selectedMonthFilter !== 'all' ? selectedMonthFilter : 'Total Active'}
                 </span>
               </div>
-              <span className="text-[11px] theme-text-muted">
-                {selectedMarketerFilter !== 'all' ? `Filtered by ${selectedMarketerFilter}` : 'All live Notion placements tracked'}
+              <span className="text-[11px] theme-text-muted truncate">
+                {selectedMarketerFilter !== 'all' ? `Filtered by ${selectedMarketerFilter}` : 'Live placements & interviews tracked'}
               </span>
             </div>
 
@@ -1034,8 +1184,8 @@ export default function TableClient({
                   Active
                 </span>
               </div>
-              <span className="text-[11px] theme-text-muted">
-                Lead marketer: <strong className="theme-text">{analytics.marketerLeaderboard[0]?.name || 'N/A'}</strong> ({analytics.marketerLeaderboard[0]?.count || 0})
+              <span className="text-[11px] theme-text-muted truncate">
+                Top marketer: <strong className="theme-text">{analytics.marketerLeaderboard[0]?.name || 'N/A'}</strong> ({analytics.marketerLeaderboard[0]?.count || 0})
               </span>
             </div>
 
@@ -1060,66 +1210,320 @@ export default function TableClient({
               </span>
             </div>
 
-            {/* Card 4: Top Client Target */}
+            {/* Card 4: Advanced Stage / Final Rounds */}
             <div className="p-4 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col justify-between gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold theme-text-muted uppercase tracking-wider">
-                  Top Client Target
+                  Advanced / Final Rounds
                 </span>
-                <span className="text-lg">🏢</span>
+                <span className="text-lg">🎯</span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold theme-text truncate">
-                  {analytics.topClient.name}
+                <span className="text-3xl font-extrabold theme-text">
+                  {analytics.advancedInterviewsCount}
+                </span>
+                <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">
+                  {analytics.totalCount > 0 ? `${((analytics.advancedInterviewsCount / analytics.totalCount) * 100).toFixed(0)}%` : '0%'} pipeline
                 </span>
               </div>
-              <span className="text-[11px] theme-text-muted">
-                <strong className="theme-text">{analytics.topClient.count}</strong> records with this client
+              <span className="text-[11px] theme-text-muted truncate">
+                Top client: <strong className="theme-text">{analytics.topClient.name}</strong> ({analytics.topClient.count})
               </span>
             </div>
 
           </div>
 
-          {/* Middle Section: Monthly Trend & Top Consultants */}
+          {/* ========================================================================= */}
+          {/* IN-DEPTH MARKETER DOSSIER INSPECTOR (Interactive inspection of actual rows)*/}
+          {/* ========================================================================= */}
+          {selectedDossierMarketer && (
+            <div
+              id="marketer-dossier-panel"
+              className="p-4 sm:p-5 rounded-xl border-2 shadow-md transition-all flex flex-col gap-4"
+              style={{
+                borderColor: 'var(--color-accent)',
+                backgroundColor: 'var(--color-surface)',
+              }}
+            >
+              {/* Dossier Header */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b theme-border">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm text-white shadow-xs shrink-0"
+                    style={{ backgroundColor: 'var(--color-accent)' }}
+                  >
+                    {getInitials(selectedDossierMarketer)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-extrabold theme-text">
+                        {selectedDossierMarketer}’s Placement Dossier
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        {analytics.marketerLeaderboard.find((m) => m.name === selectedDossierMarketer)?.percentage}% Team Share
+                      </span>
+                    </div>
+                    <p className="text-xs theme-text-muted">
+                      Full breakdown of candidate submissions, interview rounds, clients, and real-time Notion updates.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedDossierMarketer(null);
+                      setDossierSearch('');
+                      setDossierMonthFilter('all');
+                      setDossierPage(1);
+                    }}
+                    className="px-3 py-1.5 rounded-lg border text-xs font-bold theme-surface theme-border theme-text hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  >
+                    ✕ Close Dossier
+                  </button>
+                </div>
+              </div>
+
+              {/* Dossier Quick Stats & Search / Month Filters */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                
+                {/* Month Tabs */}
+                <div className="flex items-center gap-1 overflow-x-auto py-0.5">
+                  <button
+                    onClick={() => { setDossierMonthFilter('all'); setDossierPage(1); }}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                      dossierMonthFilter === 'all'
+                        ? 'theme-btn shadow-2xs'
+                        : 'theme-surface-alt theme-text-muted hover:theme-text border theme-border'
+                    }`}
+                  >
+                    All Months ({data.filter((r) => normalizeName(getField(r, ['marketer'])) === selectedDossierMarketer).length})
+                  </button>
+                  {analytics.allMonths.map((m) => {
+                    const countInMonth = data.filter((r) => {
+                      const isMarketer = normalizeName(getField(r, ['marketer'])) === selectedDossierMarketer;
+                      const dateVal = getField(r, ['date', 'interview time', 'time']);
+                      return isMarketer && extractMonthLabel(dateVal) === m;
+                    }).length;
+                    if (countInMonth === 0) return null;
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => { setDossierMonthFilter(m); setDossierPage(1); }}
+                        className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                          dossierMonthFilter === m
+                            ? 'theme-btn shadow-2xs'
+                            : 'theme-surface-alt theme-text-muted hover:theme-text border theme-border'
+                        }`}
+                      >
+                        {m} ({countInMonth})
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Dossier Search Box */}
+                <div className="relative min-w-[220px]">
+                  <input
+                    type="text"
+                    value={dossierSearch}
+                    onChange={(e) => { setDossierSearch(e.target.value); setDossierPage(1); }}
+                    placeholder={`🔍 Search in ${selectedDossierMarketer}’s rows...`}
+                    className="w-full px-3 py-1.5 border rounded-lg text-xs focus:outline-none theme-input theme-border"
+                  />
+                  {dossierSearch && (
+                    <button
+                      onClick={() => setDossierSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 theme-text-muted hover:theme-text text-xs font-bold cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Dossier Table */}
+              <div className="w-full overflow-x-auto rounded-lg border theme-table-border">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="theme-table-head border-b theme-table-border">
+                    <tr>
+                      <th className="px-3 py-2 font-bold w-10 text-center border-r theme-table-border">#</th>
+                      <th className="px-3 py-2 font-bold border-r theme-table-border min-w-[130px]">Date / Time</th>
+                      <th className="px-3 py-2 font-bold border-r theme-table-border min-w-[150px]">Candidate Name</th>
+                      <th className="px-3 py-2 font-bold border-r theme-table-border min-w-[160px]">Position</th>
+                      <th className="px-3 py-2 font-bold border-r theme-table-border min-w-[130px]">Vendor / Client</th>
+                      <th className="px-3 py-2 font-bold border-r theme-table-border min-w-[100px]">Support</th>
+                      <th className="px-3 py-2 font-bold border-r theme-table-border min-w-[110px]">Status</th>
+                      <th className="px-3 py-2 font-bold min-w-[200px]">Update / Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dossierPagedRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-6 text-center theme-text-muted italic">
+                          No matching placements found for {selectedDossierMarketer} in this filter view.
+                        </td>
+                      </tr>
+                    ) : (
+                      dossierPagedRows.map((row, idx) => {
+                        const globalIdx = (dossierPage - 1) * dossierRowsPerPage + idx + 1;
+                        const dateVal = getField(row, ['date', 'interview time', 'time']) || '-';
+                        const candidate = getField(row, ['consultant', 'candidate', 'name']) || '-';
+                        const position = getField(row, ['position', 'role']) || '-';
+                        const client = getField(row, ['vendor', 'client']) || '-';
+                        const support = getField(row, ['support']) || '-';
+                        const status = getField(row, ['status']) || '-';
+                        const update = getField(row, ['update', 'notes']) || '-';
+
+                        return (
+                          <tr
+                            key={row.id || idx}
+                            className="border-b theme-table-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                          >
+                            <td className="px-2.5 py-2 text-center font-mono font-bold text-[11px] theme-text-muted border-r theme-table-border">
+                              {globalIdx}
+                            </td>
+                            <td className="px-3 py-2 border-r theme-table-border theme-text font-medium whitespace-nowrap">
+                              {dateVal}
+                            </td>
+                            <td className="px-3 py-2 border-r theme-table-border font-bold theme-text">
+                              {candidate}
+                            </td>
+                            <td className="px-3 py-2 border-r theme-table-border theme-text-body">
+                              <CellBadge header="Position" value={position} />
+                            </td>
+                            <td className="px-3 py-2 border-r theme-table-border font-semibold theme-text">
+                              {client}
+                            </td>
+                            <td className="px-3 py-2 border-r theme-table-border theme-text-muted">
+                              {support}
+                            </td>
+                            <td className="px-3 py-2 border-r theme-table-border">
+                              <CellBadge header="Status" value={status} />
+                            </td>
+                            <td className="px-3 py-2 text-[11px] theme-text-body leading-relaxed">
+                              {update}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Dossier Pagination Controls */}
+              <div className="flex items-center justify-between text-xs theme-text-muted pt-1">
+                <span>
+                  Showing <strong>{dossierRows.length === 0 ? 0 : (dossierPage - 1) * dossierRowsPerPage + 1}</strong>–
+                  <strong>{Math.min(dossierPage * dossierRowsPerPage, dossierRows.length)}</strong> of{' '}
+                  <strong>{dossierRows.length}</strong> records
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setDossierPage((p) => Math.max(p - 1, 1))}
+                    disabled={dossierPage === 1}
+                    className="px-2.5 py-1 rounded border text-xs font-semibold theme-surface theme-border theme-text disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    ← Prev
+                  </button>
+                  <span className="px-2 py-1 rounded border text-xs font-bold theme-surface-alt theme-border theme-text">
+                    {dossierPage} / {dossierTotalPages}
+                  </span>
+                  <button
+                    onClick={() => setDossierPage((p) => Math.min(p + 1, dossierTotalPages))}
+                    disabled={dossierPage >= dossierTotalPages}
+                    className="px-2.5 py-1 rounded border text-xs font-semibold theme-surface theme-border theme-text disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* SECTION 2: CHRONOLOGICAL MONTHLY TREND & TOP CANDIDATES                   */}
+          {/* ========================================================================= */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             
-            {/* Left 7 cols: Placements / Interviews Per Month Chart */}
+            {/* Left 7 cols: Placements / Interviews Per Month Trend */}
             <div className="lg:col-span-7 p-4 sm:p-5 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col gap-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <h3 className="text-sm font-bold theme-text flex items-center gap-1.5">
                     <span>📅</span> Monthly Placements &amp; Interviews Trend
                   </h3>
                   <p className="text-[11px] theme-text-muted">
-                    Distribution of candidate interviews across 2026
+                    Accurate chronological distribution of interviews across 2026
                   </p>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full theme-surface theme-border border">
-                  {analytics.monthlyTrend.length} Months Tracked
-                </span>
+                <div className="flex items-center gap-2">
+                  {selectedMonthFilter !== 'all' && (
+                    <button
+                      onClick={() => setSelectedMonthFilter('all')}
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 cursor-pointer"
+                    >
+                      Filtered: {selectedMonthFilter} ✕
+                    </button>
+                  )}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full theme-surface theme-border border">
+                    {analytics.monthlyTrend.length} Months Tracked
+                  </span>
+                </div>
               </div>
 
-              {/* Monthly Bar Chart */}
-              <div className="flex flex-col gap-2.5 pt-2">
+              {/* Monthly Bar List */}
+              <div className="flex flex-col gap-3 pt-1">
                 {analytics.monthlyTrend.length === 0 ? (
                   <p className="text-xs theme-text-muted italic py-4 text-center">No date records available for monthly trend.</p>
                 ) : (
                   analytics.monthlyTrend.map((m) => {
+                    const isSelected = selectedMonthFilter === m.month;
                     const pct = ((m.count / (analytics.maxMonthCount || 1)) * 100).toFixed(0);
+                    const totalPct = analytics.totalCount > 0 ? ((m.count / analytics.totalCount) * 100).toFixed(1) : '0';
+
                     return (
-                      <div key={m.month} className="flex flex-col gap-1 text-xs">
-                        <div className="flex justify-between items-center font-medium">
-                          <span className="theme-text font-semibold">{m.month}</span>
-                          <span className="theme-text-muted font-mono text-[11px]">
-                            <strong className="theme-text font-bold">{m.count}</strong> interviews
-                          </span>
+                      <div
+                        key={m.month}
+                        onClick={() => setSelectedMonthFilter(isSelected ? 'all' : m.month)}
+                        className={`flex flex-col gap-1.5 p-2 rounded-lg transition-all cursor-pointer border ${
+                          isSelected
+                            ? 'theme-surface border-blue-500 shadow-xs'
+                            : 'border-transparent hover:theme-surface hover:border-black/10 dark:hover:border-white/10'
+                        }`}
+                        title="Click to filter by this month"
+                      >
+                        <div className="flex justify-between items-center text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold theme-text flex items-center gap-1.5">
+                              <span>🗓️</span> {m.month}
+                            </span>
+                            {isSelected && (
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-blue-100 text-blue-900 border border-blue-300">
+                                Active Filter
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px]">
+                            <span className="theme-text-muted font-semibold">{totalPct}% of total</span>
+                            <span className="font-mono font-bold px-2 py-0.5 rounded theme-surface theme-border border theme-text">
+                              {m.count} interviews
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Progress Bar */}
                         <div className="w-full h-3 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
                               width: `${pct}%`,
-                              backgroundColor: 'var(--color-accent)',
+                              backgroundColor: isSelected ? 'var(--color-accent)' : 'var(--color-accent)',
+                              opacity: isSelected ? 1 : 0.85,
                             }}
                           />
                         </div>
@@ -1130,7 +1534,7 @@ export default function TableClient({
               </div>
             </div>
 
-            {/* Right 5 cols: Consultant Volume Leaderboard */}
+            {/* Right 5 cols: Top Active Candidates */}
             <div className="lg:col-span-5 p-4 sm:p-5 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -1141,22 +1545,25 @@ export default function TableClient({
                     Candidates with the highest interview engagement
                   </p>
                 </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full theme-surface theme-border border">
+                  {analytics.uniqueConsultantsCount} Profiles
+                </span>
               </div>
 
-              <div className="flex flex-col gap-2 max-h-[340px] overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2 max-h-[380px] overflow-y-auto pr-1">
                 {analytics.consultantLeaderboard.length === 0 ? (
                   <p className="text-xs theme-text-muted italic py-4 text-center">No consultant records found.</p>
                 ) : (
-                  analytics.consultantLeaderboard.slice(0, 7).map((c, i) => (
+                  analytics.consultantLeaderboard.slice(0, 8).map((c, i) => (
                     <div
                       key={c.name}
                       className="p-2.5 rounded-lg border theme-surface theme-border flex items-center justify-between gap-2 shadow-2xs"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span
-                          className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
+                          className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-[11px] shrink-0 ${
                             i === 0
-                              ? 'bg-amber-400 text-amber-950 shadow-2xs font-extrabold'
+                              ? 'bg-amber-400 text-amber-950 shadow-2xs'
                               : i === 1
                               ? 'bg-slate-300 text-slate-900 font-bold'
                               : i === 2
@@ -1164,18 +1571,18 @@ export default function TableClient({
                               : 'theme-surface-alt theme-text-muted font-medium'
                           }`}
                         >
-                          {i + 1}
+                          {i === 0 ? '👑' : i + 1}
                         </span>
                         <div className="min-w-0">
                           <p className="font-bold text-xs theme-text truncate">{c.name}</p>
                           <p className="text-[10px] theme-text-muted truncate">
-                            {c.topPosition} • By {c.topMarketer}
+                            {c.topPosition} • Handled by <strong className="theme-text">{c.topMarketer}</strong>
                           </p>
                         </div>
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
                           {c.count} rounds
                         </span>
                       </div>
@@ -1187,117 +1594,251 @@ export default function TableClient({
 
           </div>
 
-          {/* Bottom Section: Marketers Performance Leaderboard & Top Clients / Pipeline */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            
-            {/* Left 7 cols: Marketer Team Performance */}
-            <div className="lg:col-span-7 p-4 sm:p-5 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col gap-4">
+          {/* ========================================================================= */}
+          {/* SECTION 3: RECRUITER / MARKETER MONTHLY MATRIX TABLE                      */}
+          {/* ========================================================================= */}
+          <div className="p-4 sm:p-5 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-bold theme-text flex items-center gap-1.5">
-                  <span>🏆</span> Marketer Performance Leaderboard
+                  <span>🏆</span> Marketer Monthly Performance Matrix
                 </h3>
                 <p className="text-[11px] theme-text-muted">
-                  Interviews and placements contribution per marketer
+                  Detailed month-by-month interview numbers for each recruiter/marketer with clickable dossier inspection
                 </p>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b theme-border text-theme-muted font-bold text-[11px]">
-                      <th className="pb-2 font-bold">#</th>
-                      <th className="pb-2 font-bold">Marketer Name</th>
-                      <th className="pb-2 font-bold text-right">Interviews</th>
-                      <th className="pb-2 font-bold text-right">Share of Total</th>
-                      <th className="pb-2 font-bold pl-3">Top Candidate</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y theme-border">
-                    {analytics.marketerLeaderboard.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-4 text-center theme-text-muted">
-                          No marketer records available.
-                        </td>
-                      </tr>
-                    ) : (
-                      analytics.marketerLeaderboard.map((m, idx) => (
-                        <tr key={m.name} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                          <td className="py-2.5 font-bold font-mono text-[11px] theme-text-muted">
-                            {idx + 1}
-                          </td>
-                          <td className="py-2.5 font-bold theme-text">
-                            {m.name}
-                          </td>
-                          <td className="py-2.5 font-mono font-bold text-right theme-text">
-                            {m.count}
-                          </td>
-                          <td className="py-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">
-                            {m.percentage}%
-                          </td>
-                          <td className="py-2.5 pl-3 text-[11px] theme-text-muted truncate max-w-[150px]">
-                            {m.topConsultant}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold theme-text-muted">
+                  {analytics.marketerLeaderboard.length} Marketers Active
+                </span>
               </div>
             </div>
 
-            {/* Right 5 cols: Top Clients & Status Breakdown */}
-            <div className="lg:col-span-5 p-4 sm:p-5 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col gap-4">
-              
-              {/* Top Clients */}
+            <div className="w-full overflow-x-auto rounded-lg border theme-table-border">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="theme-table-head border-b theme-table-border">
+                  <tr>
+                    <th className="px-3 py-2 font-bold w-12 text-center border-r theme-table-border">#</th>
+                    <th className="px-3 py-2 font-bold border-r theme-table-border min-w-[140px]">Marketer Name</th>
+                    
+                    {/* Monthly Columns */}
+                    {analytics.allMonths.map((m) => {
+                      const shortMonth = m.split(' ')[0].substring(0, 3);
+                      return (
+                        <th
+                          key={m}
+                          className="px-2.5 py-2 font-bold text-center border-r theme-table-border min-w-[65px]"
+                          title={m}
+                        >
+                          {shortMonth}
+                        </th>
+                      );
+                    })}
+
+                    <th className="px-3 py-2 font-bold text-right border-r theme-table-border min-w-[70px]">Total</th>
+                    <th className="px-3 py-2 font-bold text-right border-r theme-table-border min-w-[100px]">Team Share</th>
+                    <th className="px-3 py-2 font-bold border-r theme-table-border min-w-[140px]">Top Candidate</th>
+                    <th className="px-3 py-2 font-bold text-center min-w-[120px]">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {analytics.marketerLeaderboard.length === 0 ? (
+                    <tr>
+                      <td colSpan={analytics.allMonths.length + 6} className="py-6 text-center theme-text-muted italic">
+                        No marketer records available for this filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    analytics.marketerLeaderboard.map((m, idx) => {
+                      const isInspecting = selectedDossierMarketer === m.name;
+                      return (
+                        <tr
+                          key={m.name}
+                          className={`border-b theme-table-border transition-colors ${
+                            isInspecting
+                              ? 'bg-blue-50/70 dark:bg-blue-950/40'
+                              : 'hover:bg-black/5 dark:hover:bg-white/5'
+                          }`}
+                        >
+                          <td className="px-2.5 py-2 text-center font-mono font-bold text-[11px] theme-text-muted border-r theme-table-border">
+                            {idx === 0 ? '👑 1' : idx + 1}
+                          </td>
+
+                          <td className="px-3 py-2 border-r theme-table-border">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-6 h-6 rounded-md flex items-center justify-center font-black text-[10px] text-white shrink-0"
+                                style={{ backgroundColor: 'var(--color-accent)' }}
+                              >
+                                {getInitials(m.name)}
+                              </span>
+                              <span className="font-bold theme-text">{m.name}</span>
+                            </div>
+                          </td>
+
+                          {/* Dynamic Month Count Cells */}
+                          {analytics.allMonths.map((monthStr) => {
+                            const val = m.monthly[monthStr] || 0;
+                            return (
+                              <td
+                                key={monthStr}
+                                className="px-2.5 py-2 text-center font-mono text-xs border-r theme-table-border"
+                              >
+                                {val > 0 ? (
+                                  <span className="inline-block px-1.5 py-0.5 rounded font-bold bg-black/5 dark:bg-white/10 theme-text">
+                                    {val}
+                                  </span>
+                                ) : (
+                                  <span className="theme-text-muted opacity-40">-</span>
+                                )}
+                              </td>
+                            );
+                          })}
+
+                          <td className="px-3 py-2 font-mono font-extrabold text-right border-r theme-table-border theme-text">
+                            {m.count}
+                          </td>
+
+                          <td className="px-3 py-2 border-r theme-table-border">
+                            <div className="flex items-center gap-2 justify-end">
+                              <div className="w-12 h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{
+                                    width: `${m.percentage}%`,
+                                    backgroundColor: 'var(--color-accent)',
+                                  }}
+                                />
+                              </div>
+                              <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono text-[11px] w-9 text-right">
+                                {m.percentage}%
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="px-3 py-2 border-r theme-table-border text-[11px] theme-text-muted truncate max-w-[150px]">
+                            {m.topConsultant}
+                          </td>
+
+                          <td className="px-3 py-2 text-center">
+                            <button
+                              onClick={() => {
+                                if (isInspecting) {
+                                  setSelectedDossierMarketer(null);
+                                } else {
+                                  setSelectedDossierMarketer(m.name);
+                                  setDossierMonthFilter('all');
+                                  setDossierSearch('');
+                                  setDossierPage(1);
+                                  setTimeout(() => {
+                                    document.getElementById('marketer-dossier-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                  }, 100);
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                                isInspecting
+                                  ? 'bg-red-100 text-red-800 border border-red-300'
+                                  : 'theme-btn shadow-2xs'
+                              }`}
+                            >
+                              {isInspecting ? '✕ Close' : '🔍 Inspect Dossier'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* SECTION 4: CLIENT PARTNERS & PIPELINE STATUS BREAKDOWN                    */}
+          {/* ========================================================================= */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            
+            {/* Left 7 cols: Top Clients & Market Share */}
+            <div className="lg:col-span-7 p-4 sm:p-5 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col gap-4">
               <div>
                 <h3 className="text-sm font-bold theme-text flex items-center gap-1.5">
-                  <span>🏢</span> Top Client / Vendor Partners
+                  <span>🏢</span> Top Client &amp; Vendor Partners
                 </h3>
                 <p className="text-[11px] theme-text-muted">
-                  Clients generating the highest interview volume
+                  Clients generating the highest volume of candidate interviews
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2">
-                {analytics.topClients.slice(0, 5).map((client) => {
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {analytics.topClients.map((client) => {
                   const pct = ((client.count / (analytics.totalCount || 1)) * 100).toFixed(1);
                   return (
                     <div
                       key={client.name}
-                      className="flex items-center justify-between p-2 rounded-lg border theme-surface theme-border text-xs"
+                      className="p-3 rounded-xl border theme-surface theme-border flex flex-col justify-between gap-2 shadow-2xs"
                     >
-                      <span className="font-bold theme-text truncate">{client.name}</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] theme-text-muted font-semibold">{pct}%</span>
-                        <span className="px-2 py-0.5 rounded font-mono font-bold text-[11px] bg-sky-100 text-sky-900 border border-sky-300">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-xs theme-text truncate">{client.name}</span>
+                        <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-sky-100 text-sky-950 border border-sky-300">
                           {client.count}
                         </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-full h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: 'var(--color-accent)',
+                            }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-semibold theme-text-muted shrink-0">{pct}%</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
+            </div>
 
-              {/* Status Pipeline Health */}
-              {analytics.statusBreakdown.length > 0 && (
-                <div className="pt-2 border-t theme-border flex flex-col gap-2">
-                  <h4 className="text-xs font-bold theme-text flex items-center gap-1">
-                    <span>⚡</span> Pipeline Status Breakdown
-                  </h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {analytics.statusBreakdown.map((st) => (
-                      <span
+            {/* Right 5 cols: Status Pipeline Breakdown */}
+            <div className="lg:col-span-5 p-4 sm:p-5 rounded-xl border theme-surface-alt theme-border shadow-2xs flex flex-col gap-4">
+              <div>
+                <h3 className="text-sm font-bold theme-text flex items-center gap-1.5">
+                  <span>⚡</span> Interview Pipeline Status
+                </h3>
+                <p className="text-[11px] theme-text-muted">
+                  Distribution across interview and screening stages
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {analytics.statusBreakdown.length === 0 ? (
+                  <p className="text-xs theme-text-muted italic py-4 text-center">No status data available.</p>
+                ) : (
+                  analytics.statusBreakdown.map((st) => {
+                    const pct = analytics.totalCount > 0 ? ((st.count / analytics.totalCount) * 100).toFixed(1) : '0';
+                    return (
+                      <div
                         key={st.name}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border theme-surface theme-border theme-text shadow-2xs"
+                        className="flex items-center justify-between p-2.5 rounded-lg border theme-surface theme-border text-xs"
                       >
-                        <span className="font-medium">{st.name}:</span>
-                        <strong className="font-mono text-emerald-600 dark:text-emerald-400">{st.count}</strong>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
+                        <div className="flex items-center gap-2 min-w-0">
+                          <CellBadge header="Status" value={st.name} />
+                          <span className="text-[11px] theme-text-muted font-medium truncate">
+                            {pct}% of pipeline
+                          </span>
+                        </div>
+                        <span className="font-mono font-bold text-xs px-2 py-0.5 rounded theme-surface-alt theme-border border theme-text">
+                          {st.count}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
           </div>

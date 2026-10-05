@@ -2,7 +2,7 @@ import React from 'react';
 import { Client } from '@notionhq/client';
 import TableClient from './components/TableClient';
 
-export const revalidate = 0; // Disable caching so it always shows fresh Notion data
+export const revalidate = 15; // 15-second ISR cache for instantaneous header navigation while client polls every 6s
 
 function extractPropValue(prop: any) {
   if (!prop) return '-';
