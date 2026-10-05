@@ -6,38 +6,105 @@ export async function POST(request: Request) {
     const { pageId, propertyName, propertyType, value } = await request.json();
 
     if (!pageId || !propertyName) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required parameters: pageId and propertyName are required' }, { status: 400 });
     }
 
     const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
+    // Step 1: Retrieve live page to accurately determine the exact property type in Notion
+    let resolvedType = propertyType;
+    try {
+      const page = await notion.pages.retrieve({ page_id: pageId });
+      const targetProp = (page as any).properties?.[propertyName];
+      if (targetProp?.type) {
+        resolvedType = targetProp.type;
+      }
+    } catch (retrieveErr) {
+      console.warn(`Could not retrieve page ${pageId} schema directly, falling back to ${propertyType || 'rich_text'}:`, retrieveErr);
+    }
+
+    const cleanVal = value === '-' || value === null || value === undefined ? '' : String(value).trim();
     let propertyPayload: any = {};
 
-    switch (propertyType) {
+    switch (resolvedType) {
       case 'title':
-        propertyPayload = { title: [{ text: { content: value } }] };
+        propertyPayload = {
+          title: cleanVal ? [{ text: { content: cleanVal } }] : [],
+        };
         break;
+
       case 'rich_text':
-        propertyPayload = { rich_text: [{ text: { content: value } }] };
+        propertyPayload = {
+          rich_text: cleanVal ? [{ text: { content: cleanVal } }] : [],
+        };
         break;
+
       case 'select':
-        propertyPayload = value ? { select: { name: value } } : { select: null };
+        propertyPayload = {
+          select: cleanVal ? { name: cleanVal } : null,
+        };
         break;
+
+      case 'multi_select':
+        if (!cleanVal) {
+          propertyPayload = { multi_select: [] };
+        } else {
+          // If value is comma-separated (e.g. "Interview, Screening" or "2nd Round"), split into items
+          const items = cleanVal
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .map((name) => ({ name }));
+          propertyPayload = { multi_select: items.length > 0 ? items : [{ name: cleanVal }] };
+        }
+        break;
+
       case 'status':
-        propertyPayload = { status: { name: value } };
+        propertyPayload = {
+          status: cleanVal ? { name: cleanVal } : null,
+        };
         break;
+
       case 'date':
-        propertyPayload = value ? { date: { start: value } } : { date: null };
+        propertyPayload = {
+          date: cleanVal ? { start: cleanVal } : null,
+        };
         break;
+
       case 'email':
-        propertyPayload = { email: value || null };
+        propertyPayload = {
+          email: cleanVal || null,
+        };
         break;
+
       case 'phone_number':
-        propertyPayload = { phone_number: value || null };
+        propertyPayload = {
+          phone_number: cleanVal || null,
+        };
         break;
+
+      case 'url':
+        propertyPayload = {
+          url: cleanVal || null,
+        };
+        break;
+
+      case 'number':
+        propertyPayload = {
+          number: cleanVal && !isNaN(Number(cleanVal)) ? Number(cleanVal) : null,
+        };
+        break;
+
+      case 'checkbox':
+        propertyPayload = {
+          checkbox: cleanVal.toLowerCase() === 'yes' || cleanVal.toLowerCase() === 'true',
+        };
+        break;
+
       default:
-        // Default fallback as rich_text if unknown
-        propertyPayload = { rich_text: [{ text: { content: value } }] };
+        propertyPayload = {
+          rich_text: cleanVal ? [{ text: { content: cleanVal } }] : [],
+        };
         break;
     }
 
@@ -48,9 +115,12 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, resolvedType });
   } catch (error: any) {
     console.error('Error updating Notion page:', error);
-    return NextResponse.json({ error: error.message || 'Failed to update Notion' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Failed to update Notion database' },
+      { status: 500 }
+    );
   }
 }

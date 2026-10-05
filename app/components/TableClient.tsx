@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import CellBadge from './CellBadge';
 import CellSmartEditor from './CellSmartEditor';
+import InterviewDocket from './InterviewDocket';
 import { normalizeName, getInitials } from '@/app/utils/nameUtils';
 
 interface SchemaInfo {
@@ -190,6 +191,7 @@ export default function TableClient({
   const [editingCell, setEditingCell] = useState<{ rowId: string; header: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [savingStatus, setSavingStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
+  const [highlightedRowId, setHighlightedRowId] = useState<string | null>(null);
 
   // Bulletproof popover close on outside click
   useEffect(() => {
@@ -310,6 +312,26 @@ export default function TableClient({
 
   const handleNext = () => { if (currentPage < totalPages) setCurrentPage((p) => p + 1); };
   const handlePrev = () => { if (currentPage > 1) setCurrentPage((p) => p - 1); };
+
+  const handleDocketSelectRow = (rowId: string) => {
+    const rowIndex = filteredAndSortedData.findIndex((r) => r.id === rowId);
+    if (rowIndex !== -1) {
+      const targetPage = Math.floor(rowIndex / rowsPerPage) + 1;
+      if (targetPage !== currentPage) {
+        setCurrentPage(targetPage);
+      }
+    }
+    setHighlightedRowId(rowId);
+    setTimeout(() => {
+      const el = document.getElementById(`row-${rowId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+    setTimeout(() => {
+      setHighlightedRowId(null);
+    }, 4000);
+  };
 
   const startEditing = (rowId: string, header: string, currentValue: string) => {
     setEditingCell({ rowId, header });
@@ -838,6 +860,13 @@ export default function TableClient({
       {viewMode === 'table' && (
         <div className="flex flex-col gap-2 w-full">
 
+          {/* Today & Tomorrow's Interviews Quick Docket */}
+          <InterviewDocket
+            data={data}
+            columnHeaders={columnHeaders}
+            onSelectRow={handleDocketSelectRow}
+          />
+
           {/* Update Banner */}
           {hasUnacknowledgedUpdates && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50 border-2 border-amber-400 text-amber-950 px-3.5 py-2.5 rounded-lg text-xs shadow-sm">
@@ -1047,21 +1076,30 @@ export default function TableClient({
                     return (
                       <tr
                         key={row.id}
+                        id={`row-${row.id}`}
                         data-updated={isNewRow ? 'true' : undefined}
-                        className="transition-colors"
+                        className={`transition-all duration-300 ${
+                          highlightedRowId === row.id ? 'ring-2 ring-amber-500 z-10' : ''
+                        }`}
                         style={{
-                          backgroundColor: isNewRow
+                          backgroundColor: highlightedRowId === row.id
+                            ? 'rgba(251, 191, 36, 0.28)'
+                            : isNewRow
                             ? 'rgba(16,185,129,0.08)'
                             : isEven
                             ? 'var(--color-table-row-even)'
                             : 'var(--color-table-row-odd)',
-                          boxShadow: isNewRow ? 'inset 0 0 0 1px rgba(16,185,129,0.4)' : undefined,
+                          boxShadow: highlightedRowId === row.id
+                            ? 'inset 0 0 0 2px rgba(245, 158, 11, 1), 0 4px 12px rgba(245, 158, 11, 0.2)'
+                            : isNewRow
+                            ? 'inset 0 0 0 1px rgba(16,185,129,0.4)'
+                            : undefined,
                         }}
                         onMouseEnter={(e) => {
-                          if (!isNewRow) (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-table-row-hover)';
+                          if (!isNewRow && highlightedRowId !== row.id) (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-table-row-hover)';
                         }}
                         onMouseLeave={(e) => {
-                          if (!isNewRow) (e.currentTarget as HTMLElement).style.backgroundColor = isEven ? 'var(--color-table-row-even)' : 'var(--color-table-row-odd)';
+                          if (!isNewRow && highlightedRowId !== row.id) (e.currentTarget as HTMLElement).style.backgroundColor = isEven ? 'var(--color-table-row-even)' : 'var(--color-table-row-odd)';
                         }}
                       >
                         {/* # Row Number column */}
