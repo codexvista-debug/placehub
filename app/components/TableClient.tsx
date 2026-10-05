@@ -1227,7 +1227,7 @@ export default function TableClient({
                 <span className="text-3xl font-extrabold theme-text">
                   {analytics.advancedInterviewsCount}
                 </span>
-                <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-900 border border-purple-300">
                   {analytics.totalCount > 0 ? `${((analytics.advancedInterviewsCount / analytics.totalCount) * 100).toFixed(0)}%` : '0%'} pipeline
                 </span>
               </div>
@@ -1282,7 +1282,7 @@ export default function TableClient({
                       setDossierMonthFilter('all');
                       setDossierPage(1);
                     }}
-                    className="px-3 py-1.5 rounded-lg border text-xs font-bold theme-surface theme-border theme-text hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg border text-xs font-bold theme-surface theme-border theme-text hover:bg-black/5 transition-colors cursor-pointer"
                   >
                     ✕ Close Dossier
                   </button>
@@ -1384,7 +1384,7 @@ export default function TableClient({
                         return (
                           <tr
                             key={row.id || idx}
-                            className="border-b theme-table-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                            className="border-b theme-table-border hover:bg-black/5 transition-colors"
                           >
                             <td className="px-2.5 py-2 text-center font-mono font-bold text-[11px] theme-text-muted border-r theme-table-border">
                               {globalIdx}
@@ -1498,7 +1498,7 @@ export default function TableClient({
                         className={`flex flex-col gap-1.5 p-2 rounded-lg transition-all cursor-pointer border ${
                           isSelected
                             ? 'theme-surface border-blue-500 shadow-xs'
-                            : 'border-transparent hover:theme-surface hover:border-black/10 dark:hover:border-white/10'
+                            : 'border-transparent hover:theme-surface hover:border-black/10'
                         }`}
                         title="Click to filter by this month"
                       >
@@ -1522,7 +1522,7 @@ export default function TableClient({
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="w-full h-3 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
+                        <div className="w-full h-3 rounded-full bg-slate-200 overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
@@ -1587,7 +1587,7 @@ export default function TableClient({
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-900 border border-emerald-300">
                           {c.count} rounds
                         </span>
                       </div>
@@ -1663,8 +1663,8 @@ export default function TableClient({
                           key={m.name}
                           className={`border-b theme-table-border transition-colors ${
                             isInspecting
-                              ? 'bg-blue-50/70 dark:bg-blue-950/40'
-                              : 'hover:bg-black/5 dark:hover:bg-white/5'
+                              ? 'bg-blue-50/70'
+                              : 'hover:bg-black/5'
                           }`}
                         >
                           <td className="px-2.5 py-2 text-center font-mono font-bold text-[11px] theme-text-muted border-r theme-table-border">
@@ -1698,23 +1698,25 @@ export default function TableClient({
                                 className="px-2.5 py-2 text-center font-mono text-xs border-r theme-table-border"
                               >
                                 {val > 0 ? (
-                                  <span className="inline-block px-1.5 py-0.5 rounded font-mono font-bold text-xs bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-slate-100 border border-slate-300/60">
+                                  <span className="inline-block px-1.5 py-0.5 rounded font-mono font-bold text-xs bg-slate-100 text-slate-900 border border-slate-300">
                                     {val}
                                   </span>
                                 ) : (
-                                  <span className="theme-text-muted opacity-40">-</span>
+                                  <span className="text-slate-400 font-mono text-xs">-</span>
                                 )}
                               </td>
                             );
                           })}
 
-                          <td className="px-3 py-2 font-mono font-black text-right border-r theme-table-border text-slate-950 dark:text-white">
-                            {m.count}
+                          <td className="px-3 py-2 text-right border-r theme-table-border">
+                            <span className="inline-block px-2.5 py-0.5 rounded-md font-mono font-black text-xs bg-slate-900 text-white shadow-2xs">
+                              {m.count}
+                            </span>
                           </td>
 
                           <td className="px-3 py-2 border-r theme-table-border">
                             <div className="flex items-center gap-2 justify-end">
-                              <div className="w-12 h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                              <div className="w-12 h-2 rounded-full bg-slate-200 overflow-hidden">
                                 <div
                                   className="h-full rounded-full"
                                   style={{
@@ -1723,7 +1725,7 @@ export default function TableClient({
                                   }}
                                 />
                               </div>
-                              <span className="font-bold text-slate-800 dark:text-slate-200 font-mono text-xs w-10 text-right">
+                              <span className="font-bold text-slate-900 font-mono text-xs w-10 text-right">
                                 {m.percentage}%
                               </span>
                             </div>
@@ -1797,7 +1799,7 @@ export default function TableClient({
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-full h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                        <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
                           <div
                             className="h-full rounded-full"
                             style={{

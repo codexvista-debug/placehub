@@ -727,7 +727,7 @@ export default function TeamSubmissionsPage() {
                       setSelectedMarketerFilter('all');
                       setSelectedMonthFilter('all');
                     }}
-                    className="px-2 py-1 rounded-md text-[11px] font-semibold bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-800 hover:opacity-80 transition-opacity"
+                    className="px-2 py-1 rounded-md text-[11px] font-bold bg-red-50 text-red-800 border border-red-300 hover:bg-red-100 transition-colors"
                   >
                     ✕ Reset Filters
                   </button>
@@ -833,7 +833,7 @@ export default function TeamSubmissionsPage() {
               ) : sheetData.error ? (
                 <div className="flex flex-col items-center justify-center p-16 gap-3 text-center">
                   <span className="text-3xl">⚠️</span>
-                  <p className="font-bold text-base text-red-600 dark:text-red-400">Connection Error</p>
+                  <p className="font-bold text-base text-red-700">Connection Error</p>
                   <p className="text-xs text-red-500 max-w-md leading-relaxed">
                     {sheetData.error}
                   </p>
@@ -1222,8 +1222,8 @@ export default function TeamSubmissionsPage() {
                       return (
                         <tr
                           key={rec.name}
-                          className={`transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${
-                            isSelectedDossier ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : ''
+                          className={`transition-colors hover:bg-black/5 ${
+                            isSelectedDossier ? 'bg-indigo-50 border-l-4 border-l-indigo-600' : ''
                           }`}
                         >
                           {/* Recruiter Name */}
@@ -1259,21 +1259,21 @@ export default function TeamSubmissionsPage() {
                                   }
                                 }}
                                 className={`px-3 py-2.5 text-center font-mono border-r theme-border tabular-nums ${
-                                  count > 0 ? 'cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors' : ''
+                                  count > 0 ? 'cursor-pointer hover:bg-black/10 transition-colors' : ''
                                 } ${
                                   selectedMonthFilter === mo ? 'bg-amber-400/10' : ''
                                 }`}
                                 title={count > 0 ? `Click to inspect ${rec.name}'s ${count} submissions in ${mo}` : undefined}
                               >
                                 {count === 0 ? (
-                                  <span className="opacity-30 text-[11px]">-</span>
+                                  <span className="text-slate-400 font-mono text-xs font-semibold select-none">-</span>
                                 ) : isTopInMonth ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-black text-xs bg-amber-300 text-amber-950 border border-amber-500 font-mono shadow-xs hover:scale-105 transition-transform">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-black text-xs bg-amber-300 text-amber-950 border border-amber-500 font-mono shadow-xs hover:scale-105 transition-transform">
                                     <span>👑</span>
                                     <span>{count}</span>
                                   </span>
                                 ) : (
-                                  <span className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-blue-600 transition-colors">
+                                  <span className="font-mono font-bold text-xs text-slate-900 hover:text-blue-700 transition-colors">
                                     {count}
                                   </span>
                                 )}
@@ -1283,24 +1283,25 @@ export default function TeamSubmissionsPage() {
 
                           {/* Total */}
                           <td className="px-3 py-2.5 text-center font-mono font-extrabold border-r theme-border tabular-nums text-xs">
-                            <span className="inline-block px-2.5 py-0.5 rounded-md font-mono font-black text-xs bg-slate-100 dark:bg-white/10 text-slate-950 dark:text-white border border-slate-300/70">
+                            <span className="inline-block px-2.5 py-0.5 rounded-md font-mono font-black text-xs bg-slate-900 text-white shadow-2xs">
                               {rec.total}
                             </span>
                           </td>
 
                           {/* Average / Month */}
-                          <td className="px-3 py-2.5 text-center font-mono font-black border-r theme-border text-xs text-slate-900 dark:text-slate-100">
+                          <td className="px-3 py-2.5 text-center font-mono font-black border-r theme-border text-xs text-slate-900">
                             {rec.avgPerMonth}
                           </td>
 
                           {/* Peak Month */}
                           <td className="px-3 py-2.5 text-center border-r theme-border text-[11px]">
                             {rec.peakMonth.count > 0 ? (
-                              <span className="theme-text-muted font-medium">
-                                <strong className="theme-text font-bold">{rec.peakMonth.month}</strong> ({rec.peakMonth.count})
+                              <span className="font-semibold text-slate-700">
+                                <strong className="text-slate-950 font-black">{rec.peakMonth.month}</strong>{' '}
+                                <span className="text-slate-600 font-bold">({rec.peakMonth.count})</span>
                               </span>
                             ) : (
-                              <span className="opacity-40">-</span>
+                              <span className="text-slate-400 font-mono">-</span>
                             )}
                           </td>
 
@@ -1324,26 +1325,30 @@ export default function TeamSubmissionsPage() {
                   </tbody>
 
                   {/* Team Totals Footer Row */}
-                  <tfoot className="border-t-2 theme-border font-bold bg-black/5 dark:bg-white/5">
+                  <tfoot className="border-t-2 theme-border font-bold bg-slate-100">
                     <tr>
-                      <td className="px-3 py-2.5 font-bold border-r theme-border sticky left-0 z-10 theme-surface-alt theme-text">
+                      <td className="px-3 py-2.5 font-black border-r theme-border sticky left-0 z-10 theme-surface-alt text-slate-900 text-xs">
                         Team Monthly Total
                       </td>
                       {analytics.activeMonthsHeaders.map((mo) => (
                         <td
                           key={mo}
-                          className="px-3 py-2.5 text-center font-mono font-extrabold border-r theme-border text-xs tabular-nums text-emerald-600 dark:text-emerald-400"
+                          className="px-3 py-2.5 text-center font-mono font-black border-r theme-border text-xs tabular-nums"
                         >
-                          {analytics.teamMonthlyTotals[mo] || 0}
+                          <span className="inline-block px-2 py-0.5 rounded-md font-mono font-black text-xs bg-emerald-100 text-emerald-950 border border-emerald-400 shadow-2xs">
+                            {analytics.teamMonthlyTotals[mo] || 0}
+                          </span>
                         </td>
                       ))}
-                      <td className="px-3 py-2.5 text-center font-mono font-black border-r theme-border text-xs theme-text">
-                        {analytics.totalSubmissions}
+                      <td className="px-3 py-2.5 text-center font-mono font-black border-r theme-border text-xs">
+                        <span className="inline-block px-2.5 py-0.5 rounded-md font-mono font-black text-xs bg-slate-900 text-white shadow-2xs">
+                          {analytics.totalSubmissions}
+                        </span>
                       </td>
-                      <td className="px-3 py-2.5 text-center font-mono font-bold border-r theme-border text-xs opacity-70">
+                      <td className="px-3 py-2.5 text-center font-mono font-black border-r theme-border text-xs text-slate-900">
                         {(analytics.totalSubmissions / Math.max(analytics.activeMonthsHeaders.length, 1)).toFixed(1)}
                       </td>
-                      <td colSpan={2} className="px-3 py-2.5 text-center text-[11px] theme-text-muted italic">
+                      <td colSpan={2} className="px-3 py-2.5 text-center text-[11px] font-bold text-slate-700">
                         {analytics.activeMonthsHeaders.length} total active months tracked
                       </td>
                     </tr>
@@ -1437,7 +1442,7 @@ export default function TeamSubmissionsPage() {
                                 {b.count} {b.count === 1 ? 'submission' : 'submissions'}
                               </span>
                             </div>
-                            <div className="w-full h-2.5 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
+                            <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
                               <div
                                 className="h-full rounded-full transition-all duration-500"
                                 style={{
@@ -1476,7 +1481,7 @@ export default function TeamSubmissionsPage() {
                               <span className="font-bold text-[10px] theme-text-muted w-4">{idx + 1}.</span>
                               <span className="font-bold theme-text truncate">{c.name}</span>
                             </div>
-                            <span className="px-2 py-0.5 rounded font-mono font-bold text-[11px] bg-emerald-50 text-emerald-900 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300">
+                            <span className="px-2 py-0.5 rounded font-mono font-bold text-[11px] bg-emerald-50 text-emerald-900 border border-emerald-300">
                               {c.count} subs
                             </span>
                           </div>
@@ -1502,7 +1507,7 @@ export default function TeamSubmissionsPage() {
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border theme-surface theme-border theme-text shadow-2xs"
                           >
                             <span>🏢 {cl.name}:</span>
-                            <strong className="font-mono text-emerald-600 dark:text-emerald-400">{cl.count}</strong>
+                            <strong className="font-mono text-emerald-900 font-extrabold">{cl.count}</strong>
                           </span>
                         ))}
                       </div>
@@ -1523,7 +1528,7 @@ export default function TeamSubmissionsPage() {
                         {dossierFilteredRows.length} {dossierFilteredRows.length === 1 ? 'submission' : 'submissions'}
                       </span>
                       {dossierMonthFilter !== 'all' && (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-100 text-amber-950 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-400">
                           Month: {dossierMonthFilter}
                         </span>
                       )}
@@ -1642,7 +1647,7 @@ export default function TeamSubmissionsPage() {
                             return (
                               <tr
                                 key={row.id || idx}
-                                className={`transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${
+                                className={`transition-colors hover:bg-black/5 ${
                                   isEven ? 'theme-surface' : 'theme-surface-alt'
                                 }`}
                               >
@@ -1739,7 +1744,7 @@ export default function TeamSubmissionsPage() {
                             <strong className="theme-text font-bold">{m.count}</strong> submissions
                           </span>
                         </div>
-                        <div className="w-full h-3 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
+                        <div className="w-full h-3 rounded-full bg-slate-200 overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
@@ -1796,7 +1801,7 @@ export default function TeamSubmissionsPage() {
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-900 border border-emerald-300">
                           {c.count} subs
                         </span>
                       </div>
@@ -1836,7 +1841,7 @@ export default function TeamSubmissionsPage() {
                     </thead>
                     <tbody className="divide-y theme-border">
                       {analytics.marketerLeaderboard.map((m, idx) => (
-                        <tr key={m.name} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        <tr key={m.name} className="hover:bg-black/5 transition-colors">
                           <td className="py-2.5 font-bold font-mono text-[11px] theme-text-muted">
                             {idx + 1}
                           </td>
@@ -1846,7 +1851,7 @@ export default function TeamSubmissionsPage() {
                           <td className="py-2.5 font-mono font-bold text-right theme-text">
                             {m.count}
                           </td>
-                          <td className="py-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                          <td className="py-2.5 text-right font-mono font-bold text-xs text-slate-900">
                             {m.percentage}%
                           </td>
                           <td className="py-2.5 pl-3 text-[11px] theme-text-muted truncate max-w-[150px]">
