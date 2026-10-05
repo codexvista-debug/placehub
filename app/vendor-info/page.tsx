@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 
 interface VendorRecord {
@@ -21,6 +21,14 @@ export default function VendorInfoPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
+
+  // New updates & unacknowledged updates state (tracking for both tabs)
+  const [desiNewRowIds, setDesiNewRowIds] = useState<Set<string>>(new Set());
+  const [desiUpdatedCellKeys, setDesiUpdatedCellKeys] = useState<Set<string>>(new Set());
+  const [pvNewRowIds, setPvNewRowIds] = useState<Set<string>>(new Set());
+  const [pvUpdatedCellKeys, setPvUpdatedCellKeys] = useState<Set<string>>(new Set());
+  const [showOnlyUpdated, setShowOnlyUpdated] = useState(false);
+  const initialLoadDoneRef = useRef(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,6 +68,19 @@ export default function VendorInfoPage() {
   const [editValue, setEditValue] = useState('');
   const [savingStatus, setSavingStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
 
+  // Active dataset & update keys depending on active tab
+  const currentList = activeTab === 'desi' ? desiVendors : pvVendors;
+  const setCurrentList = activeTab === 'desi' ? setDesiVendors : setPvVendors;
+
+  const activeNewRowIds = activeTab === 'desi' ? desiNewRowIds : pvNewRowIds;
+  const setActiveNewRowIds = activeTab === 'desi' ? setDesiNewRowIds : setPvNewRowIds;
+
+  const activeUpdatedCellKeys = activeTab === 'desi' ? desiUpdatedCellKeys : pvUpdatedCellKeys;
+  const setActiveUpdatedCellKeys = activeTab === 'desi' ? setDesiUpdatedCellKeys : setPvUpdatedCellKeys;
+
+  const totalActiveUpdates = activeNewRowIds.size + activeUpdatedCellKeys.size;
+  const hasUnacknowledgedUpdates = totalActiveUpdates > 0;
+
   // Close context menu on outside click
   useEffect(() => {
     if (!contextMenu) return;
@@ -68,7 +89,7 @@ export default function VendorInfoPage() {
     return () => window.removeEventListener('click', close);
   }, [contextMenu]);
 
-  // Fetch both Desi and PV Vendor databases on initial load
+  // Initial load
   const loadVendors = async (silent = false) => {
     if (!silent) setIsLoading(true);
     else setIsRefreshing(true);
@@ -84,6 +105,7 @@ export default function VendorInfoPage() {
 
       setDesiVendors(data.desiVendors || []);
       setPvVendors(data.pvVendors || []);
+      initialLoadDoneRef.current = true;
       setLastSynced(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (err: any) {
       console.error('Error fetching vendors:', err);
@@ -98,6 +120,111 @@ export default function VendorInfoPage() {
     loadVendors();
   }, []);
 
+  // Background Live Polling every 6 seconds to detect new additions and cell edits in Notion
+  useEffect(() => {
+    if (editingCell) return; // Pause polling while actively editing an inline cell
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/fetch-vendors');
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json.success) return;
+
+        const incomingDesi: VendorRecord[] = json.desiVendors || [];
+        const incomingPv: VendorRecord[] = json.pvVendors || [];
+
+        if (initialLoadDoneRef.current) {
+          // Compare Desi Vendors
+          setDesiVendors((prevDesi) => {
+            if (prevDesi.length > 0) {
+              const prevMap = new Map(prevDesi.map((v) => [v.id, v]));
+              const freshRowIds: string[] = [];
+              const freshCellKeys: string[] = [];
+
+              incomingDesi.forEach((row) => {
+                const prev = prevMap.get(row.id);
+                if (!prev) {
+                  freshRowIds.push(row.id);
+                } else {
+                  (['company', 'name', 'email', 'phone', 'comments'] as const).forEach((field) => {
+                    if ((prev[field] || '') !== (row[field] || '')) {
+                      freshCellKeys.push(`${row.id}-${field}`);
+                    }
+                  });
+                }
+              });
+
+              if (freshRowIds.length > 0) {
+                setDesiNewRowIds((prev) => {
+                  const n = new Set(prev);
+                  freshRowIds.forEach((id) => n.add(id));
+                  return n;
+                });
+              }
+              if (freshCellKeys.length > 0) {
+                setDesiUpdatedCellKeys((prev) => {
+                  const n = new Set(prev);
+                  freshCellKeys.forEach((key) => n.add(key));
+                  return n;
+                });
+              }
+            }
+            return incomingDesi;
+          });
+
+          // Compare PV Vendors
+          setPvVendors((prevPv) => {
+            if (prevPv.length > 0) {
+              const prevMap = new Map(prevPv.map((v) => [v.id, v]));
+              const freshRowIds: string[] = [];
+              const freshCellKeys: string[] = [];
+
+              incomingPv.forEach((row) => {
+                const prev = prevMap.get(row.id);
+                if (!prev) {
+                  freshRowIds.push(row.id);
+                } else {
+                  (['company', 'name', 'email', 'phone', 'comments'] as const).forEach((field) => {
+                    if ((prev[field] || '') !== (row[field] || '')) {
+                      freshCellKeys.push(`${row.id}-${field}`);
+                    }
+                  });
+                }
+              });
+
+              if (freshRowIds.length > 0) {
+                setPvNewRowIds((prev) => {
+                  const n = new Set(prev);
+                  freshRowIds.forEach((id) => n.add(id));
+                  return n;
+                });
+              }
+              if (freshCellKeys.length > 0) {
+                setPvUpdatedCellKeys((prev) => {
+                  const n = new Set(prev);
+                  freshCellKeys.forEach((key) => n.add(key));
+                  return n;
+                });
+              }
+            }
+            return incomingPv;
+          });
+        } else {
+          setDesiVendors(incomingDesi);
+          setPvVendors(incomingPv);
+          initialLoadDoneRef.current = true;
+        }
+
+        setLastSynced(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      } catch (err) {
+        console.error('Vendor polling error:', err);
+      }
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [editingCell]);
+
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2500);
@@ -109,13 +236,35 @@ export default function VendorInfoPage() {
     triggerToast(`Copied ${label}: "${text.length > 28 ? text.slice(0, 28) + '...' : text}"`);
   };
 
-  // Active dataset
-  const currentList = activeTab === 'desi' ? desiVendors : pvVendors;
-  const setCurrentList = activeTab === 'desi' ? setDesiVendors : setPvVendors;
+  // Acknowledge All Updates for active tab
+  const acknowledgeAllUpdates = () => {
+    setActiveNewRowIds(new Set());
+    setActiveUpdatedCellKeys(new Set());
+    setShowOnlyUpdated(false);
+  };
+
+  // Scroll smoothly to first updated cell / row
+  const jumpToFirstUpdate = () => {
+    const target = document.querySelector('[data-updated="true"]');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
 
   // Filtered & Sorted list
   const filteredVendors = useMemo(() => {
     let list = [...currentList];
+
+    // Updates only filter
+    if (showOnlyUpdated) {
+      list = list.filter(
+        (v) =>
+          activeNewRowIds.has(v.id) ||
+          (['company', 'name', 'email', 'phone', 'comments'] as const).some((field) =>
+            activeUpdatedCellKeys.has(`${v.id}-${field}`)
+          )
+      );
+    }
 
     // Filter type
     if (filterType === 'phone') {
@@ -149,7 +298,7 @@ export default function VendorInfoPage() {
     });
 
     return list;
-  }, [currentList, filterType, searchQuery, sortField, sortAsc]);
+  }, [currentList, filterType, searchQuery, sortField, sortAsc, showOnlyUpdated, activeNewRowIds, activeUpdatedCellKeys]);
 
   // Summary Metrics
   const metrics = useMemo(() => {
@@ -169,10 +318,20 @@ export default function VendorInfoPage() {
     setSavingStatus((prev) => ({ ...prev, [key]: 'saving' }));
 
     // Optimistic update
+    const displayVal = newValue.trim() || '-';
     setCurrentList((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: newValue } : item))
+      prev.map((item) => (item.id === id ? { ...item, [field]: displayVal } : item))
     );
     setEditingCell(null);
+
+    // If cell was marked updated, acknowledge it
+    if (activeUpdatedCellKeys.has(key)) {
+      setActiveUpdatedCellKeys((prev) => {
+        const n = new Set(prev);
+        n.delete(key);
+        return n;
+      });
+    }
 
     try {
       const res = await fetch('/api/update-vendor', {
@@ -183,7 +342,7 @@ export default function VendorInfoPage() {
 
       if (!res.ok) throw new Error('Failed to update in Notion');
       setSavingStatus((prev) => ({ ...prev, [key]: 'saved' }));
-      triggerToast(`Updated ${field} in Notion ✓`);
+      triggerToast(`Saved ${field} to Notion ✓`);
       setTimeout(() => {
         setSavingStatus((prev) => {
           const n = { ...prev };
@@ -285,7 +444,7 @@ export default function VendorInfoPage() {
 
   return (
     <div className="min-h-screen theme-bg theme-text-body p-2 sm:p-5 font-[family-name:var(--font-geist-sans)]">
-      <div className="max-w-7xl mx-auto flex flex-col gap-5">
+      <div className="max-w-7xl mx-auto flex flex-col gap-4">
 
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl border theme-surface theme-border shadow-xs">
@@ -302,7 +461,7 @@ export default function VendorInfoPage() {
               Vendor Info
             </h1>
             <p className="text-xs sm:text-sm theme-text-muted mt-0.5">
-              Browse, search, and manage recruiter &amp; employer contacts across Desi and PV networks.
+              Browse, search, and manage recruiter &amp; employer contacts across Desi and PV networks with live Notion updates.
             </p>
           </div>
 
@@ -346,8 +505,9 @@ export default function VendorInfoPage() {
               onClick={() => {
                 setActiveTab('desi');
                 setSearchQuery('');
+                setShowOnlyUpdated(false);
               }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer select-none ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer select-none relative ${
                 activeTab === 'desi'
                   ? 'bg-orange-600 text-white shadow-md'
                   : 'theme-surface theme-border border theme-text hover:bg-slate-100/70'
@@ -362,6 +522,11 @@ export default function VendorInfoPage() {
               >
                 {desiVendors.length}
               </span>
+              {desiNewRowIds.size + desiUpdatedCellKeys.size > 0 && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-amber-950 animate-pulse shadow-sm">
+                  ⚡ {desiNewRowIds.size + desiUpdatedCellKeys.size} new
+                </span>
+              )}
             </button>
 
             <button
@@ -369,8 +534,9 @@ export default function VendorInfoPage() {
               onClick={() => {
                 setActiveTab('pv');
                 setSearchQuery('');
+                setShowOnlyUpdated(false);
               }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer select-none ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer select-none relative ${
                 activeTab === 'pv'
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'theme-surface theme-border border theme-text hover:bg-slate-100/70'
@@ -385,6 +551,11 @@ export default function VendorInfoPage() {
               >
                 {pvVendors.length}
               </span>
+              {pvNewRowIds.size + pvUpdatedCellKeys.size > 0 && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-amber-950 animate-pulse shadow-sm">
+                  ⚡ {pvNewRowIds.size + pvUpdatedCellKeys.size} new
+                </span>
+              )}
             </button>
           </div>
 
@@ -394,6 +565,54 @@ export default function VendorInfoPage() {
             </span>
           )}
         </div>
+
+        {/* Update Notification Banner (Identical to Live Table) */}
+        {hasUnacknowledgedUpdates && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50 border-2 border-amber-400 text-amber-950 px-4 py-2.5 rounded-xl text-xs shadow-sm animate-in fade-in duration-200">
+            <div className="flex items-center gap-2.5">
+              <span className="text-base animate-bounce">🔔</span>
+              <span>
+                <strong className="text-amber-900 font-bold">New updates from Notion:</strong>{' '}
+                {activeNewRowIds.size > 0 && (
+                  <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold mr-1">
+                    +{activeNewRowIds.size} New Vendor{activeNewRowIds.size > 1 ? 's' : ''}
+                  </span>
+                )}
+                {activeUpdatedCellKeys.size > 0 && (
+                  <span className="bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-bold">
+                    {activeUpdatedCellKeys.size} Cell Update{activeUpdatedCellKeys.size > 1 ? 's' : ''}
+                  </span>
+                )}
+                {' '}detected in {activeTab === 'desi' ? 'Desi' : 'PV'} Vendor Info.
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={jumpToFirstUpdate}
+                className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 font-semibold rounded shadow-2xs transition-colors cursor-pointer text-xs"
+              >
+                Jump to Update
+              </button>
+              <button
+                onClick={() => setShowOnlyUpdated(!showOnlyUpdated)}
+                className={`px-2.5 py-1 font-semibold rounded shadow-2xs transition-colors cursor-pointer text-xs ${
+                  showOnlyUpdated
+                    ? 'bg-amber-600 text-white hover:bg-amber-700'
+                    : 'bg-white border border-amber-300 text-amber-900 hover:bg-amber-100'
+                }`}
+              >
+                {showOnlyUpdated ? 'Show All Vendors' : 'Filter Updates Only'}
+              </button>
+              <button
+                onClick={acknowledgeAllUpdates}
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow-xs transition-colors cursor-pointer text-xs"
+              >
+                ✓ Acknowledge All
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Metrics Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -497,13 +716,18 @@ export default function VendorInfoPage() {
             <div className="p-12 text-center flex flex-col items-center gap-2">
               <span className="text-3xl">📭</span>
               <p className="text-sm font-bold theme-text">No vendors match your search</p>
-              <p className="text-xs theme-text-muted">Try clearing the search query or adjusting your filters.</p>
-              {searchQuery && (
+              <p className="text-xs theme-text-muted">
+                {showOnlyUpdated ? 'No unacknowledged updates found in this tab.' : 'Try clearing the search query or adjusting your filters.'}
+              </p>
+              {(searchQuery || showOnlyUpdated) && (
                 <button
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => {
+                    setSearchQuery('');
+                    setShowOnlyUpdated(false);
+                  }}
                   className="mt-2 text-xs font-bold text-orange-600 hover:underline cursor-pointer"
                 >
-                  Clear Search
+                  Clear Filters
                 </button>
               )}
             </div>
@@ -566,12 +790,40 @@ export default function VendorInfoPage() {
 
                 <tbody className="divide-y theme-table-border text-xs">
                   {filteredVendors.map((vendor, index) => {
+                    const isNewRow = activeNewRowIds.has(vendor.id);
                     const isEven = index % 2 === 0;
                     const isLinkedIn = vendor.comments && (vendor.comments.includes('linkedin.com') || vendor.comments.includes('http'));
+
+                    const companyKey = `${vendor.id}-company`;
+                    const isCompanyUpdated = activeUpdatedCellKeys.has(companyKey);
+
+                    const nameKey = `${vendor.id}-name`;
+                    const isNameUpdated = activeUpdatedCellKeys.has(nameKey);
+
+                    const emailKey = `${vendor.id}-email`;
+                    const isEmailUpdated = activeUpdatedCellKeys.has(emailKey);
+
+                    const phoneKey = `${vendor.id}-phone`;
+                    const isPhoneUpdated = activeUpdatedCellKeys.has(phoneKey);
+
+                    const commentsKey = `${vendor.id}-comments`;
+                    const isCommentsUpdated = activeUpdatedCellKeys.has(commentsKey);
+
+                    const hasAnyCellUpdate = isCompanyUpdated || isNameUpdated || isEmailUpdated || isPhoneUpdated || isCommentsUpdated;
 
                     return (
                       <tr
                         key={vendor.id}
+                        data-updated={isNewRow || hasAnyCellUpdate ? 'true' : undefined}
+                        onClick={() => {
+                          if (isNewRow) {
+                            setActiveNewRowIds((prev) => {
+                              const n = new Set(prev);
+                              n.delete(vendor.id);
+                              return n;
+                            });
+                          }
+                        }}
                         onContextMenu={(e) => {
                           e.preventDefault();
                           setContextMenu({
@@ -582,16 +834,35 @@ export default function VendorInfoPage() {
                         }}
                         className={`transition-colors ${
                           isEven ? 'theme-table-row-even' : 'theme-table-row-odd'
-                        } theme-table-row-hover`}
+                        } theme-table-row-hover ${
+                          isNewRow ? 'ring-1 ring-emerald-500/40' : ''
+                        }`}
                       >
                         {/* Index */}
-                        <td className="px-3 py-2.5 text-center font-mono font-bold text-[11px] theme-text-muted border-r theme-table-border">
+                        <td
+                          className="px-3 py-2.5 text-center font-mono font-bold text-[11px] theme-text-muted border-r theme-table-border cursor-pointer"
+                          title="Click to acknowledge row updates"
+                        >
                           {index + 1}
                         </td>
 
                         {/* Company */}
                         <td
-                          className="px-3.5 py-2.5 font-bold border-r theme-table-border align-top"
+                          data-updated={isCompanyUpdated ? 'true' : undefined}
+                          onClick={() => {
+                            if (isCompanyUpdated) {
+                              setActiveUpdatedCellKeys((prev) => {
+                                const n = new Set(prev);
+                                n.delete(companyKey);
+                                return n;
+                              });
+                            }
+                          }}
+                          className="px-3.5 py-2.5 font-bold border-r theme-table-border align-top transition-colors"
+                          style={{
+                            backgroundColor: isCompanyUpdated ? 'rgba(245,158,11,0.12)' : undefined,
+                            boxShadow: isCompanyUpdated ? 'inset 0 0 0 2px rgba(245,158,11,0.6)' : undefined,
+                          }}
                           onContextMenu={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -604,37 +875,63 @@ export default function VendorInfoPage() {
                             });
                           }}
                         >
-                          {editingCell?.id === vendor.id && editingCell?.field === 'company' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              autoFocus
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveCell(vendor.id, 'company', editValue);
-                                if (e.key === 'Escape') setEditingCell(null);
-                              }}
-                              onBlur={() => handleSaveCell(vendor.id, 'company', editValue)}
-                              className="w-full p-1 border rounded text-xs theme-input"
-                            />
-                          ) : (
-                            <div
-                              onClick={() => {
-                                setEditingCell({ id: vendor.id, field: 'company' });
-                                setEditValue(vendor.company === '-' ? '' : vendor.company);
-                              }}
-                              className="cursor-pointer hover:text-orange-600 transition-colors flex items-center justify-between group"
-                              title="Click to edit company"
-                            >
-                              <span className="theme-text">{vendor.company}</span>
-                              <span className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400">✏️</span>
-                            </div>
-                          )}
+                          <div className="flex flex-col gap-0.5">
+                            {isNewRow && (
+                              <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wide shadow-2xs w-fit mb-0.5">
+                                ✨ New Vendor
+                              </span>
+                            )}
+                            {isCompanyUpdated && (
+                              <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-2xs w-fit mb-0.5">
+                                ⚡ Updated
+                              </span>
+                            )}
+                            {editingCell?.id === vendor.id && editingCell?.field === 'company' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                autoFocus
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveCell(vendor.id, 'company', editValue);
+                                  if (e.key === 'Escape') setEditingCell(null);
+                                }}
+                                onBlur={() => handleSaveCell(vendor.id, 'company', editValue)}
+                                className="w-full p-1 border rounded text-xs theme-input"
+                              />
+                            ) : (
+                              <div
+                                onClick={() => {
+                                  setEditingCell({ id: vendor.id, field: 'company' });
+                                  setEditValue(vendor.company === '-' ? '' : vendor.company);
+                                }}
+                                className="cursor-pointer hover:text-orange-600 transition-colors flex items-center justify-between group"
+                                title="Click to edit or acknowledge"
+                              >
+                                <span className="theme-text">{vendor.company}</span>
+                                <span className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400">✏️</span>
+                              </div>
+                            )}
+                          </div>
                         </td>
 
                         {/* Contact Name */}
                         <td
-                          className="px-3.5 py-2.5 border-r theme-table-border align-top"
+                          data-updated={isNameUpdated ? 'true' : undefined}
+                          onClick={() => {
+                            if (isNameUpdated) {
+                              setActiveUpdatedCellKeys((prev) => {
+                                const n = new Set(prev);
+                                n.delete(nameKey);
+                                return n;
+                              });
+                            }
+                          }}
+                          className="px-3.5 py-2.5 border-r theme-table-border align-top transition-colors"
+                          style={{
+                            backgroundColor: isNameUpdated ? 'rgba(245,158,11,0.12)' : undefined,
+                            boxShadow: isNameUpdated ? 'inset 0 0 0 2px rgba(245,158,11,0.6)' : undefined,
+                          }}
                           onContextMenu={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -647,42 +944,63 @@ export default function VendorInfoPage() {
                             });
                           }}
                         >
-                          {editingCell?.id === vendor.id && editingCell?.field === 'name' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              autoFocus
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveCell(vendor.id, 'name', editValue);
-                                if (e.key === 'Escape') setEditingCell(null);
-                              }}
-                              onBlur={() => handleSaveCell(vendor.id, 'name', editValue)}
-                              className="w-full p-1 border rounded text-xs theme-input"
-                            />
-                          ) : (
-                            <div
-                              onClick={() => {
-                                setEditingCell({ id: vendor.id, field: 'name' });
-                                setEditValue(vendor.name === '-' ? '' : vendor.name);
-                              }}
-                              className="cursor-pointer hover:text-orange-600 transition-colors flex items-center justify-between group"
-                              title="Click to edit contact name"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                                  {(vendor.name || 'V')[0]?.toUpperCase()}
-                                </span>
-                                <span className="font-semibold theme-text">{vendor.name}</span>
+                          <div className="flex flex-col gap-0.5">
+                            {isNameUpdated && (
+                              <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-2xs w-fit mb-0.5">
+                                ⚡ Updated
+                              </span>
+                            )}
+                            {editingCell?.id === vendor.id && editingCell?.field === 'name' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                autoFocus
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveCell(vendor.id, 'name', editValue);
+                                  if (e.key === 'Escape') setEditingCell(null);
+                                }}
+                                onBlur={() => handleSaveCell(vendor.id, 'name', editValue)}
+                                className="w-full p-1 border rounded text-xs theme-input"
+                              />
+                            ) : (
+                              <div
+                                onClick={() => {
+                                  setEditingCell({ id: vendor.id, field: 'name' });
+                                  setEditValue(vendor.name === '-' ? '' : vendor.name);
+                                }}
+                                className="cursor-pointer hover:text-orange-600 transition-colors flex items-center justify-between group"
+                                title="Click to edit or acknowledge"
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                    {(vendor.name || 'V')[0]?.toUpperCase()}
+                                  </span>
+                                  <span className="font-semibold theme-text">{vendor.name}</span>
+                                </div>
+                                <span className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400">✏️</span>
                               </div>
-                              <span className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-400">✏️</span>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </td>
 
                         {/* Email */}
                         <td
-                          className="px-3.5 py-2.5 border-r theme-table-border align-top"
+                          data-updated={isEmailUpdated ? 'true' : undefined}
+                          onClick={() => {
+                            if (isEmailUpdated) {
+                              setActiveUpdatedCellKeys((prev) => {
+                                const n = new Set(prev);
+                                n.delete(emailKey);
+                                return n;
+                              });
+                            }
+                          }}
+                          className="px-3.5 py-2.5 border-r theme-table-border align-top transition-colors"
+                          style={{
+                            backgroundColor: isEmailUpdated ? 'rgba(245,158,11,0.12)' : undefined,
+                            boxShadow: isEmailUpdated ? 'inset 0 0 0 2px rgba(245,158,11,0.6)' : undefined,
+                          }}
                           onContextMenu={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -690,59 +1008,80 @@ export default function VendorInfoPage() {
                               x: e.clientX,
                               y: e.clientY,
                               vendor,
-                              cellField: 'Contact',
+                              cellField: 'Email',
                               cellValue: vendor.email,
                             });
                           }}
                         >
-                          {editingCell?.id === vendor.id && editingCell?.field === 'email' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              autoFocus
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveCell(vendor.id, 'email', editValue);
-                                if (e.key === 'Escape') setEditingCell(null);
-                              }}
-                              onBlur={() => handleSaveCell(vendor.id, 'email', editValue)}
-                              className="w-full p-1 border rounded text-xs theme-input"
-                            />
-                          ) : vendor.email && vendor.email !== '-' ? (
-                            <div className="flex items-center justify-between gap-1 group">
-                              <a
-                                href={`mailto:${vendor.email}`}
-                                className="font-mono text-[11px] text-blue-600 hover:underline truncate select-all"
-                                title={`Email ${vendor.email}`}
+                          <div className="flex flex-col gap-0.5">
+                            {isEmailUpdated && (
+                              <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-2xs w-fit mb-0.5">
+                                ⚡ Updated
+                              </span>
+                            )}
+                            {editingCell?.id === vendor.id && editingCell?.field === 'email' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                autoFocus
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveCell(vendor.id, 'email', editValue);
+                                  if (e.key === 'Escape') setEditingCell(null);
+                                }}
+                                onBlur={() => handleSaveCell(vendor.id, 'email', editValue)}
+                                className="w-full p-1 border rounded text-xs theme-input"
+                              />
+                            ) : vendor.email && vendor.email !== '-' ? (
+                              <div className="flex items-center justify-between gap-1 group">
+                                <a
+                                  href={`mailto:${vendor.email}`}
+                                  className="font-mono text-[11px] text-blue-600 hover:underline truncate select-all"
+                                  title={`Email ${vendor.email}`}
+                                >
+                                  {vendor.email}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(vendor.email, 'Email')}
+                                  className="opacity-0 group-hover:opacity-100 text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-opacity cursor-pointer shrink-0"
+                                  title="Copy Email"
+                                >
+                                  📋
+                                </button>
+                              </div>
+                            ) : (
+                              <span
+                                onClick={() => {
+                                  setEditingCell({ id: vendor.id, field: 'email' });
+                                  setEditValue('');
+                                }}
+                                className="text-slate-400 italic cursor-pointer hover:text-slate-600"
+                                title="Click to add email"
                               >
-                                {vendor.email}
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(vendor.email, 'Email')}
-                                className="opacity-0 group-hover:opacity-100 text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-opacity cursor-pointer shrink-0"
-                                title="Copy Email"
-                              >
-                                📋
-                              </button>
-                            </div>
-                          ) : (
-                            <span
-                              onClick={() => {
-                                setEditingCell({ id: vendor.id, field: 'email' });
-                                setEditValue('');
-                              }}
-                              className="text-slate-400 italic cursor-pointer hover:text-slate-600"
-                              title="Click to add email"
-                            >
-                              - Add email -
-                            </span>
-                          )}
+                                - Add email -
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Phone */}
                         <td
-                          className="px-3.5 py-2.5 border-r theme-table-border align-top"
+                          data-updated={isPhoneUpdated ? 'true' : undefined}
+                          onClick={() => {
+                            if (isPhoneUpdated) {
+                              setActiveUpdatedCellKeys((prev) => {
+                                const n = new Set(prev);
+                                n.delete(phoneKey);
+                                return n;
+                              });
+                            }
+                          }}
+                          className="px-3.5 py-2.5 border-r theme-table-border align-top transition-colors"
+                          style={{
+                            backgroundColor: isPhoneUpdated ? 'rgba(245,158,11,0.12)' : undefined,
+                            boxShadow: isPhoneUpdated ? 'inset 0 0 0 2px rgba(245,158,11,0.6)' : undefined,
+                          }}
                           onContextMenu={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -755,53 +1094,74 @@ export default function VendorInfoPage() {
                             });
                           }}
                         >
-                          {editingCell?.id === vendor.id && editingCell?.field === 'phone' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              autoFocus
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveCell(vendor.id, 'phone', editValue);
-                                if (e.key === 'Escape') setEditingCell(null);
-                              }}
-                              onBlur={() => handleSaveCell(vendor.id, 'phone', editValue)}
-                              className="w-full p-1 border rounded text-xs theme-input"
-                            />
-                          ) : vendor.phone && vendor.phone !== '-' ? (
-                            <div className="flex items-center justify-between gap-1 group">
-                              <a
-                                href={`tel:${vendor.phone}`}
-                                className="font-mono text-[11px] text-slate-800 hover:underline break-words"
+                          <div className="flex flex-col gap-0.5">
+                            {isPhoneUpdated && (
+                              <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-2xs w-fit mb-0.5">
+                                ⚡ Updated
+                              </span>
+                            )}
+                            {editingCell?.id === vendor.id && editingCell?.field === 'phone' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                autoFocus
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveCell(vendor.id, 'phone', editValue);
+                                  if (e.key === 'Escape') setEditingCell(null);
+                                }}
+                                onBlur={() => handleSaveCell(vendor.id, 'phone', editValue)}
+                                className="w-full p-1 border rounded text-xs theme-input"
+                              />
+                            ) : vendor.phone && vendor.phone !== '-' ? (
+                              <div className="flex items-center justify-between gap-1 group">
+                                <a
+                                  href={`tel:${vendor.phone}`}
+                                  className="font-mono text-[11px] text-slate-800 hover:underline break-words"
+                                >
+                                  {vendor.phone}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(vendor.phone, 'Phone')}
+                                  className="opacity-0 group-hover:opacity-100 text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-opacity cursor-pointer shrink-0"
+                                  title="Copy Phone"
+                                >
+                                  📋
+                                </button>
+                              </div>
+                            ) : (
+                              <span
+                                onClick={() => {
+                                  setEditingCell({ id: vendor.id, field: 'phone' });
+                                  setEditValue('');
+                                }}
+                                className="text-slate-400 italic cursor-pointer hover:text-slate-600"
+                                title="Click to add phone"
                               >
-                                {vendor.phone}
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(vendor.phone, 'Phone')}
-                                className="opacity-0 group-hover:opacity-100 text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-opacity cursor-pointer shrink-0"
-                                title="Copy Phone"
-                              >
-                                📋
-                              </button>
-                            </div>
-                          ) : (
-                            <span
-                              onClick={() => {
-                                setEditingCell({ id: vendor.id, field: 'phone' });
-                                setEditValue('');
-                              }}
-                              className="text-slate-400 italic cursor-pointer hover:text-slate-600"
-                              title="Click to add phone"
-                            >
-                              - Add phone -
-                            </span>
-                          )}
+                                - Add phone -
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Comments / Notes */}
                         <td
-                          className="px-3.5 py-2.5 border-r theme-table-border align-top break-words"
+                          data-updated={isCommentsUpdated ? 'true' : undefined}
+                          onClick={() => {
+                            if (isCommentsUpdated) {
+                              setActiveUpdatedCellKeys((prev) => {
+                                const n = new Set(prev);
+                                n.delete(commentsKey);
+                                return n;
+                              });
+                            }
+                          }}
+                          className="px-3.5 py-2.5 border-r theme-table-border align-top break-words transition-colors"
+                          style={{
+                            backgroundColor: isCommentsUpdated ? 'rgba(245,158,11,0.12)' : undefined,
+                            boxShadow: isCommentsUpdated ? 'inset 0 0 0 2px rgba(245,158,11,0.6)' : undefined,
+                          }}
                           onContextMenu={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -814,59 +1174,66 @@ export default function VendorInfoPage() {
                             });
                           }}
                         >
-                          {editingCell?.id === vendor.id && editingCell?.field === 'comments' ? (
-                            <textarea
-                              value={editValue}
-                              autoFocus
-                              rows={2}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  handleSaveCell(vendor.id, 'comments', editValue);
-                                }
-                                if (e.key === 'Escape') setEditingCell(null);
-                              }}
-                              onBlur={() => handleSaveCell(vendor.id, 'comments', editValue)}
-                              className="w-full p-1 border rounded text-xs theme-input"
-                            />
-                          ) : isLinkedIn ? (
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <a
-                                href={vendor.comments.trim().startsWith('http') ? vendor.comments.trim() : `https://${vendor.comments.trim()}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-semibold text-[11px] transition-colors"
+                          <div className="flex flex-col gap-0.5">
+                            {isCommentsUpdated && (
+                              <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-2xs w-fit mb-0.5">
+                                ⚡ Updated
+                              </span>
+                            )}
+                            {editingCell?.id === vendor.id && editingCell?.field === 'comments' ? (
+                              <textarea
+                                value={editValue}
+                                autoFocus
+                                rows={2}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSaveCell(vendor.id, 'comments', editValue);
+                                  }
+                                  if (e.key === 'Escape') setEditingCell(null);
+                                }}
+                                onBlur={() => handleSaveCell(vendor.id, 'comments', editValue)}
+                                className="w-full p-1 border rounded text-xs theme-input"
+                              />
+                            ) : isLinkedIn ? (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <a
+                                  href={vendor.comments.trim().startsWith('http') ? vendor.comments.trim() : `https://${vendor.comments.trim()}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-semibold text-[11px] transition-colors"
+                                >
+                                  <span>🔗</span>
+                                  <span>LinkedIn / URL</span>
+                                </a>
+                                <span className="text-[10px] theme-text-muted truncate max-w-[180px]">
+                                  {vendor.comments}
+                                </span>
+                              </div>
+                            ) : vendor.comments && vendor.comments !== '-' ? (
+                              <span
+                                onClick={() => {
+                                  setEditingCell({ id: vendor.id, field: 'comments' });
+                                  setEditValue(vendor.comments);
+                                }}
+                                className="cursor-pointer hover:text-orange-600 transition-colors text-slate-700"
+                                title="Click to edit notes"
                               >
-                                <span>🔗</span>
-                                <span>LinkedIn / URL</span>
-                              </a>
-                              <span className="text-[10px] theme-text-muted truncate max-w-[180px]">
                                 {vendor.comments}
                               </span>
-                            </div>
-                          ) : vendor.comments && vendor.comments !== '-' ? (
-                            <span
-                              onClick={() => {
-                                setEditingCell({ id: vendor.id, field: 'comments' });
-                                setEditValue(vendor.comments);
-                              }}
-                              className="cursor-pointer hover:text-orange-600 transition-colors text-slate-700"
-                              title="Click to edit notes"
-                            >
-                              {vendor.comments}
-                            </span>
-                          ) : (
-                            <span
-                              onClick={() => {
-                                setEditingCell({ id: vendor.id, field: 'comments' });
-                                setEditValue('');
-                              }}
-                              className="text-slate-400 italic cursor-pointer hover:text-slate-600 text-[11px]"
-                            >
-                              + Add notes
-                            </span>
-                          )}
+                            ) : (
+                              <span
+                                onClick={() => {
+                                  setEditingCell({ id: vendor.id, field: 'comments' });
+                                  setEditValue('');
+                                }}
+                                className="text-slate-400 italic cursor-pointer hover:text-slate-600 text-[11px]"
+                              >
+                                + Add notes
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Actions */}
@@ -897,7 +1264,7 @@ export default function VendorInfoPage() {
           className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-2xl py-1.5 w-64 text-xs font-semibold text-slate-800 animate-in fade-in zoom-in-95 duration-75 select-none"
           style={{
             left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 270 : contextMenu.x),
-            top: Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 220 : contextMenu.y),
+            top: Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 250 : contextMenu.y),
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -935,7 +1302,25 @@ export default function VendorInfoPage() {
             </button>
           )}
 
-          {/* 2. Copy Company */}
+          {/* 2. Clear Cell Value Action */}
+          {contextMenu.cellField && contextMenu.cellValue && contextMenu.cellValue !== '-' && (
+            <button
+              type="button"
+              onClick={() => {
+                const rawField = contextMenu.cellField!.toLowerCase();
+                const fieldKey = rawField === 'contact' ? 'email' : rawField;
+                handleSaveCell(contextMenu.vendor.id, fieldKey, '');
+                triggerToast(`Cleared ${contextMenu.cellField} value ✓`);
+                setContextMenu(null);
+              }}
+              className="w-full text-left px-3 py-1.5 hover:bg-rose-50 text-rose-600 flex items-center gap-2 transition-colors cursor-pointer border-t border-slate-100 text-xs font-semibold"
+            >
+              <span className="text-xs">🧹</span>
+              <span className="truncate">Clear {contextMenu.cellField} Value</span>
+            </button>
+          )}
+
+          {/* 3. Copy Company */}
           {contextMenu.vendor.company && contextMenu.vendor.company !== '-' && contextMenu.cellField !== 'Company' && (
             <button
               type="button"
@@ -950,7 +1335,7 @@ export default function VendorInfoPage() {
             </button>
           )}
 
-          {/* 3. Copy Contact Name */}
+          {/* 4. Copy Contact Name */}
           {contextMenu.vendor.name && contextMenu.vendor.name !== '-' && contextMenu.cellField !== 'Name' && (
             <button
               type="button"
@@ -965,7 +1350,7 @@ export default function VendorInfoPage() {
             </button>
           )}
 
-          {/* 4. Delete Action */}
+          {/* 5. Delete Action */}
           <div className="border-t border-slate-100 my-0.5" />
           <button
             type="button"

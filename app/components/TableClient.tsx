@@ -2038,6 +2038,23 @@ export default function TableClient({
             </button>
           )}
 
+          {/* Clear Cell Value */}
+          {contextMenu.cellHeader && contextMenu.cellValue && contextMenu.cellValue !== '-' && (
+            <button
+              type="button"
+              onClick={() => {
+                saveCellEdit(contextMenu.row.id, contextMenu.cellHeader!, '');
+                setCopiedFeedback(`Cleared ${contextMenu.cellHeader} value ✓`);
+                setTimeout(() => setCopiedFeedback(null), 2500);
+                setContextMenu(null);
+              }}
+              className="w-full text-left px-3 py-1.5 hover:bg-rose-50 text-rose-600 flex items-center gap-2 transition-colors cursor-pointer border-t border-slate-100 text-xs font-semibold"
+            >
+              <span className="text-xs">🧹</span>
+              <span className="truncate">Clear {contextMenu.cellHeader} Value</span>
+            </button>
+          )}
+
           {/* 2. Optional: Copy Candidate Name if clicked cell was something else */}
           {(() => {
             const candidateName =
