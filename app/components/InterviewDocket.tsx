@@ -7,6 +7,7 @@ interface InterviewDocketProps {
   data: Record<string, string>[];
   columnHeaders: string[];
   onSelectRow?: (rowId: string) => void;
+  storageKey?: string;
 }
 
 interface ParsedInterview {
@@ -98,7 +99,12 @@ function parseInterviewDateTime(timeStr: string, dateStr: string) {
   };
 }
 
-export default function InterviewDocket({ data, columnHeaders, onSelectRow }: InterviewDocketProps) {
+export default function InterviewDocket({
+  data,
+  columnHeaders,
+  onSelectRow,
+  storageKey = 'interview_docket_dismissed',
+}: InterviewDocketProps) {
   const [isDismissed, setIsDismissed] = useState(false);
   const [viewScope, setViewScope] = useState<'today_tomorrow' | 'all_active'>('today_tomorrow');
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -106,10 +112,10 @@ export default function InterviewDocket({ data, columnHeaders, onSelectRow }: In
   // Load dismissed state from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('interview_docket_dismissed');
+      const stored = localStorage.getItem(storageKey);
       if (stored === 'true') setIsDismissed(true);
     } catch {}
-  }, []);
+  }, [storageKey]);
 
   // Update current time every 30 seconds for live countdowns
   useEffect(() => {
@@ -123,7 +129,7 @@ export default function InterviewDocket({ data, columnHeaders, onSelectRow }: In
     setIsDismissed((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem('interview_docket_dismissed', String(next));
+        localStorage.setItem(storageKey, String(next));
       } catch {}
       return next;
     });
@@ -153,7 +159,7 @@ export default function InterviewDocket({ data, columnHeaders, onSelectRow }: In
     const list: ParsedInterview[] = [];
 
     data.forEach((row) => {
-      const timeVal = getField(row, ['interview time', 'time']);
+      const timeVal = getField(row, ['interview time', 'time', 'feedback']);
       const dateVal = getField(row, ['date']);
       const parsed = parseInterviewDateTime(timeVal, dateVal);
       if (!parsed) return;
@@ -203,7 +209,7 @@ export default function InterviewDocket({ data, columnHeaders, onSelectRow }: In
         position: getField(row, ['position', 'role', 'title']) || '',
         client: getField(row, ['vendor', 'client', 'company']) || 'Client / Vendor',
         timeRaw: timeVal || parsed.timeFormatted,
-        status: getField(row, ['status']) || 'Interview',
+        status: getField(row, ['status', 'submitted/rejected']) || 'Interview',
         support: getField(row, ['support']) || '',
         marketer: getField(row, ['marketer', 'recruiter']) || '',
         timestamp: parsed.timestamp,

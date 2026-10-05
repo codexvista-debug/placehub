@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import CellBadge from '../components/CellBadge';
+import InterviewDocket from '../components/InterviewDocket';
 import { normalizeName, getInitials } from '@/app/utils/nameUtils';
 
 interface SheetData {
@@ -150,6 +151,7 @@ export default function TeamSubmissionsPage() {
   const [columnSelectedValues, setColumnSelectedValues] = useState<Record<string, string[]>>({});
   const [sortColumn, setSortColumn] = useState<string | null>('Date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [highlightedRowId, setHighlightedRowId] = useState<string | null>(null);
 
   // Bulletproof popover close on outside click
   useEffect(() => {
@@ -282,6 +284,25 @@ export default function TeamSubmissionsPage() {
   };
   const handlePrev = () => {
     if (currentPage > 1) setCurrentPage((p) => p - 1);
+  };
+
+  const handleDocketSelectRow = (rowId: string) => {
+    setViewMode('table');
+    const rowIndex = filteredAndSortedRows.findIndex((r) => r.id === rowId);
+    if (rowIndex !== -1) {
+      const targetPage = Math.floor(rowIndex / rowsPerPage) + 1;
+      if (targetPage !== currentPage) {
+        setCurrentPage(targetPage);
+      }
+    }
+    setHighlightedRowId(rowId);
+    setTimeout(() => {
+      const el = document.getElementById(`row-${rowId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+    setTimeout(() => setHighlightedRowId(null), 3500);
   };
 
   const toggleValueFilter = (header: string, option: string) => {
@@ -751,6 +772,14 @@ export default function TeamSubmissionsPage() {
         {/* ========================================================================= */}
         {viewMode === 'table' && (
           <div className="flex flex-col gap-3">
+            {/* Today & Tomorrow's Quick Docket */}
+            <InterviewDocket
+              data={sheetData.rows}
+              columnHeaders={sheetData.columnHeaders}
+              onSelectRow={handleDocketSelectRow}
+              storageKey="team_submissions_docket_dismissed"
+            />
+
             {/* Pagination & Search Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs font-medium theme-text-muted pb-1">
               <div className="flex items-center gap-3 flex-wrap flex-1">
@@ -1018,24 +1047,34 @@ export default function TeamSubmissionsPage() {
                       currentRows.map((row, index) => {
                         const rowIndex = startIndex + index + 1;
                         const isEven = index % 2 === 0;
+                        const isHighlighted = highlightedRowId === (row.id || String(index));
 
                         return (
                           <tr
                             key={row.id || index}
-                            className="transition-colors"
+                            id={`row-${row.id || index}`}
+                            className={`transition-all duration-300 ${
+                              isHighlighted ? 'ring-2 ring-amber-500 z-10' : 'transition-colors'
+                            }`}
                             style={{
-                              backgroundColor: isEven
+                              backgroundColor: isHighlighted
+                                ? 'rgba(251, 191, 36, 0.28)'
+                                : isEven
                                 ? 'var(--color-table-row-even)'
                                 : 'var(--color-table-row-odd)',
                             }}
                             onMouseEnter={(e) => {
-                              (e.currentTarget as HTMLElement).style.backgroundColor =
-                                'var(--color-table-row-hover)';
+                              if (!isHighlighted) {
+                                (e.currentTarget as HTMLElement).style.backgroundColor =
+                                  'var(--color-table-row-hover)';
+                              }
                             }}
                             onMouseLeave={(e) => {
-                              (e.currentTarget as HTMLElement).style.backgroundColor = isEven
-                                ? 'var(--color-table-row-even)'
-                                : 'var(--color-table-row-odd)';
+                              if (!isHighlighted) {
+                                (e.currentTarget as HTMLElement).style.backgroundColor = isEven
+                                  ? 'var(--color-table-row-even)'
+                                  : 'var(--color-table-row-odd)';
+                              }
                             }}
                           >
                             <td
