@@ -59,7 +59,7 @@ function LoginFormContent() {
             RemoteTiger Access
           </h1>
           <p className="text-xs sm:text-sm theme-text-muted mt-1">
-            Private placement portal for Sayan &amp; team. Enter your shared secret passcode to continue.
+            Enter your shared security passcode to access the portal.
           </p>
         </div>
       </div>
