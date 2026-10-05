@@ -146,7 +146,7 @@ function getColumnWidthClass(header: string): string {
   if (h.includes('email')) return 'w-[185px] min-w-[165px] max-w-[215px]';
   if (h.includes('phone')) return 'w-[125px] min-w-[115px] max-w-[140px]';
   if (h.includes('rate') || h.includes('price')) return 'w-[95px] min-w-[85px] max-w-[110px] whitespace-nowrap';
-  if (h.includes('update') || h.includes('notes')) return 'w-[180px] min-w-[150px] max-w-[220px]';
+  if (h.includes('update') || h.includes('notes')) return 'w-[230px] min-w-[190px] max-w-[280px]';
   return 'w-[120px] min-w-[100px] max-w-[150px]';
 }
 
@@ -1223,7 +1223,7 @@ export default function TableClient({
                                   onCancel={() => setEditingCell(null)}
                                 />
                               )}
-                              <div className={`flex flex-col gap-1 items-start justify-between min-h-[24px] w-full max-w-full overflow-hidden ${isEditing ? 'opacity-25 pointer-events-none' : ''}`}>
+                              <div className={`flex flex-col gap-1 w-full min-w-0 min-h-[24px] ${isEditing ? 'opacity-25 pointer-events-none' : ''}`}>
                                 {colIndex === 0 && isNewRow && (
                                   <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wide shadow-2xs">
                                     ✨ New Row
