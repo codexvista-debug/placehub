@@ -150,8 +150,25 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
     );
   }
 
-  // 6. DATE — Non-wrapping, crisp tabular typography
-  if (h.includes('date')) {
+  // 6. UPDATE / NOTES — Multi-line wrapped text
+  if (h.includes('update') || h.includes('note') || h.includes('comment')) {
+    return (
+      <div
+        className="text-[11.5px] leading-relaxed text-slate-800 pl-2 border-l-2 py-0.5 break-words whitespace-pre-wrap w-full min-w-0"
+        style={{
+          borderColor: 'var(--color-accent)',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word',
+        }}
+      >
+        {value}
+      </div>
+    );
+  }
+
+  // 7. DATE — Non-wrapping, crisp tabular typography
+  if (h === 'date' || (h.includes('date') && !h.includes('update'))) {
     return (
       <span className="font-mono text-xs font-bold text-slate-900 whitespace-nowrap tabular-nums">
         {value}
@@ -159,7 +176,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
     );
   }
 
-  // 7. TIME — Crisp readable date-time string
+  // 8. TIME — Crisp readable date-time string
   if (h.includes('time')) {
     return (
       <span className="text-[11.5px] font-semibold text-slate-800 leading-snug break-words block max-w-full">
@@ -168,7 +185,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
     );
   }
 
-  // 8. RECRUITER CONTACTS
+  // 9. RECRUITER CONTACTS
   if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) {
     return (
       <span className="font-bold text-xs text-slate-900 leading-snug break-words block max-w-full">
@@ -177,7 +194,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
     );
   }
 
-  // 9. EMAIL / PHONE
+  // 10. EMAIL / PHONE
   if (h.includes('phone')) {
     return (
       <span className="font-mono text-[11px] font-medium text-slate-700 select-all whitespace-nowrap block max-w-full">
@@ -191,18 +208,6 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
       <span className="font-mono text-[11px] font-medium text-slate-700 select-all break-words leading-tight block max-w-full">
         {value}
       </span>
-    );
-  }
-
-  // 10. UPDATE / NOTES — Multi-line wrapped text
-  if (h.includes('update') || h.includes('note') || h.includes('comment')) {
-    return (
-      <div
-        className="text-[11.5px] leading-relaxed text-slate-800 pl-2 border-l-2 py-0.5 break-words whitespace-normal w-full min-w-0 [overflow-wrap:anywhere]"
-        style={{ borderColor: 'var(--color-accent)' }}
-      >
-        {value}
-      </div>
     );
   }
 
