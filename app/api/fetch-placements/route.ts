@@ -35,8 +35,12 @@ function extractPropValue(prop: any) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const limitParam = searchParams.get('limit');
+    const maxLimit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 50, 1), 500) : 500;
+
     const notion = new Client({ auth: process.env.NOTION_API_KEY });
     const databaseId = process.env.NOTION_DATABASE_ID;
 
@@ -46,12 +50,13 @@ export async function GET() {
     let cursor: string | undefined = undefined;
     let allResults: any[] = [];
 
-    while (hasMore && allResults.length < 500) {
+    while (hasMore && allResults.length < maxLimit) {
+      const pageSize = Math.min(maxLimit - allResults.length, 100);
       // @ts-ignore - Notion SDK v5 compatibility
       const response = await notion.dataSources.query({
         data_source_id: databaseId,
         start_cursor: cursor,
-        page_size: 100,
+        page_size: pageSize,
       });
 
       allResults.push(...response.results);

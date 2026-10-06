@@ -89,28 +89,49 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
+
   const isInitialLoadRef = useRef(true);
+  const isSyncingRef = useRef(false);
+  const desktopEnabledRef = useRef(false);
+  const soundEnabledRef = useRef(true);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    desktopEnabledRef.current = desktopEnabled;
+  }, [desktopEnabled]);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
 
   // Initialize from localStorage and check notification permission
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     // 1. Permission check
-    if ('Notification' in window) {
-      setPermission(Notification.permission);
-      const savedDesktop = localStorage.getItem(STORAGE_KEY_DESKTOP);
-      if (savedDesktop === 'true' && Notification.permission === 'granted') {
-        setDesktopEnabled(true);
-      } else if (Notification.permission !== 'granted') {
-        setDesktopEnabled(false);
+    try {
+      if ('Notification' in window) {
+        setPermission(Notification.permission);
+        const savedDesktop = localStorage.getItem(STORAGE_KEY_DESKTOP);
+        if (savedDesktop === 'true' && Notification.permission === 'granted') {
+          setDesktopEnabled(true);
+          desktopEnabledRef.current = true;
+        } else {
+          setDesktopEnabled(false);
+          desktopEnabledRef.current = false;
+        }
       }
-    }
+    } catch {}
 
     // 2. Sound check
-    const savedSound = localStorage.getItem(STORAGE_KEY_SOUND);
-    if (savedSound !== null) {
-      setSoundEnabledState(savedSound === 'true');
-    }
+    try {
+      const savedSound = localStorage.getItem(STORAGE_KEY_SOUND);
+      if (savedSound !== null) {
+        const val = savedSound === 'true';
+        setSoundEnabledState(val);
+        soundEnabledRef.current = val;
+      }
+    } catch {}
 
     // 3. Stored notifications
     try {
@@ -138,6 +159,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const setSoundEnabled = (val: boolean) => {
     setSoundEnabledState(val);
+    soundEnabledRef.current = val;
     try {
       localStorage.setItem(STORAGE_KEY_SOUND, String(val));
     } catch {}
@@ -173,13 +195,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Poll & sync live data
   const refreshNotifications = useCallback(async (manual = false) => {
-    if (isSyncing) return;
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
     setIsSyncing(true);
 
     try {
-      // Fetch both endpoints concurrently
+      // Fetch both endpoints concurrently (use limit=40 on placements to only query 1 page from Notion)
       const [resInterviews, resSubmissions] = await Promise.allSettled([
-        fetch('/api/fetch-placements', { cache: 'no-store' }).then((r) => r.json()),
+        fetch('/api/fetch-placements?limit=40', { cache: 'no-store' }).then((r) => r.json()),
         fetch('/api/fetch-google-sheet', { cache: 'no-store' }).then((r) => r.json()),
       ]);
 
@@ -352,8 +375,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         if (!isInitialLoadRef.current) {
           const unreadNew = incomingNotifications.filter((n) => !n.read);
           if (unreadNew.length > 0) {
-            if (soundEnabled) playChime();
-            if (desktopEnabled && Notification.permission === 'granted') {
+            if (soundEnabledRef.current) playChime();
+            if (desktopEnabledRef.current && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
               unreadNew.slice(0, 3).forEach((n) => fireDesktopNotification(n));
             }
           }
@@ -365,19 +388,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     } catch (err) {
       console.warn('Notification sync error:', err);
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
     }
-  }, [isSyncing, soundEnabled, desktopEnabled, fireDesktopNotification]);
+  }, [fireDesktopNotification]);
 
-  // Periodic background polling (every 40 seconds + on window focus)
+  // Periodic background polling (every 45 seconds + on window focus)
   useEffect(() => {
     refreshNotifications();
 
     const interval = setInterval(() => {
       refreshNotifications();
-    }, 40000);
+    }, 45000);
 
-    const onFocus = () => refreshNotifications();
+    const onFocus = () => {
+      refreshNotifications();
+    };
     window.addEventListener('focus', onFocus);
 
     return () => {
@@ -396,6 +422,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (desktopEnabled) {
       // Turn off
       setDesktopEnabled(false);
+      desktopEnabledRef.current = false;
       localStorage.setItem(STORAGE_KEY_DESKTOP, 'false');
       return false;
     }
@@ -409,6 +436,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     if (currentPerm === 'granted') {
       setDesktopEnabled(true);
+      desktopEnabledRef.current = true;
       localStorage.setItem(STORAGE_KEY_DESKTOP, 'true');
 
       // Send confirmation test notification

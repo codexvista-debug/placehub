@@ -91,7 +91,6 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            prefetch={true}
             className="flex items-center gap-2.5 shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
             title="Go to Interviews"
           >
@@ -142,7 +141,6 @@ export default function Header() {
                 <Link
                   key={item.path}
                   href={item.path}
-                  prefetch={true}
                   className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer relative"
                   style={{
                     backgroundColor: isActive ? 'var(--color-header-active)' : 'transparent',
