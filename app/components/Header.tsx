@@ -98,30 +98,38 @@ export default function Header() {
               className="w-8 h-8 rounded-lg flex items-center justify-center shadow-xs transition-transform hover:scale-105 border border-slate-200/80 bg-white"
             >
               <svg className="w-5 h-5 drop-shadow-2xs" viewBox="0 0 24 24" fill="none">
-                {/* 1st Paw Finger (Leftmost / Dewclaw - Cool Grey) */}
+                {/* 1st Paw Finger (Leftmost / Dewclaw) */}
                 <path
                   d="M5.5 11c-1.38 0-2.5 1.12-2.5 2.5S4.12 16 5.5 16 8 14.88 8 13.5 6.88 11 5.5 11z"
-                  fill="#94a3b8"
+                  fill="#d97706"
                 />
-                {/* 2nd Paw Finger (Upper Left - Tiger Orange) */}
+                {/* 2nd Paw Finger (Upper Left) */}
                 <path
                   d="M7.5 3C6.12 3 5 4.12 5 5.5S6.12 8 7.5 8 10 6.88 10 5.5 8.88 3 7.5 3z"
                   fill="#f97316"
                 />
-                {/* 3rd Paw Finger (Upper Right - Tiger Orange) */}
+                {/* 3rd Paw Finger (Upper Right) */}
                 <path
                   d="M16.5 3C15.12 3 14 4.12 14 5.5S15.12 8 16.5 8 19 6.88 19 5.5 17.88 3 16.5 3z"
                   fill="#f97316"
                 />
-                {/* 4th Paw Finger (Rightmost - Tiger Orange) */}
+                {/* 4th Paw Finger (Rightmost) */}
                 <path
                   d="M18.5 11c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5z"
                   fill="#f97316"
                 />
-                {/* Main Paw Pad (Bottom Center - Tiger Orange) */}
+                {/* Main Paw Pad */}
                 <path
                   d="M12 14c-2.76 0-5 1.79-5 4 0 1.66 1.34 3 3 3h4c1.66 0 3-1.34 3-3 0-2.21-2.24-4-5-4z"
                   fill="#f97316"
+                />
+                {/* Tiger stripes */}
+                <path
+                  d="M6.1 12.1 7.4 13M6 14.2l1.5.7M6.9 5.9l1.4.8M8 4.5l1.2.7M15.1 4.5l1.2-.7M14.8 5.9l1.4-.8M17.9 12.1l-1.3.9M18 14.2l-1.5.7M9.5 16.3l1.3.4M9 18l1.5.2M14.5 16.3l-1.3.4M15 18l-1.5.2"
+                  stroke="#2b160b"
+                  strokeWidth="0.85"
+                  strokeLinecap="round"
+                  fill="none"
                 />
               </svg>
             </div>
