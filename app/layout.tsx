@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
 import { ThemeProvider } from "./context/ThemeContext";
+import { NotificationProvider } from "./context/NotificationContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,8 +32,10 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col font-[family-name:var(--font-geist-sans)]">
         <ThemeProvider>
-          <Header />
-          <div className="flex-1">{children}</div>
+          <NotificationProvider>
+            <Header />
+            <div className="flex-1">{children}</div>
+          </NotificationProvider>
         </ThemeProvider>
       </body>
     </html>
