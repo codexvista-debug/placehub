@@ -197,7 +197,7 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
   // 10. EMAIL / PHONE
   if (h.includes('phone')) {
     return (
-      <span className="font-mono text-[11px] font-medium text-slate-700 select-all whitespace-nowrap block max-w-full">
+      <span className="font-mono text-[11px] font-medium text-slate-700 select-all break-words leading-snug block max-w-full">
         {value}
       </span>
     );

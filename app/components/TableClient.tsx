@@ -138,16 +138,16 @@ function getColumnWidthClass(header: string): string {
   if (h.includes('time')) return 'w-[170px] min-w-[155px] max-w-[195px]';
   if (h.includes('consultant') || h.includes('candidate')) return 'w-[155px] min-w-[140px] max-w-[175px]';
   if (h.includes('position') || h.includes('role')) return 'w-[155px] min-w-[140px] max-w-[185px]';
-  if (h.includes('vendor') || h.includes('client')) return 'w-[115px] min-w-[105px] max-w-[135px]';
+  if (h.includes('vendor') || h.includes('client')) return 'w-[125px] min-w-[110px] max-w-[145px]';
   if (h.includes('status')) return 'w-[125px] min-w-[115px] max-w-[140px]';
   if (h.includes('marketer')) return 'w-[105px] min-w-[95px] max-w-[120px]';
   if (h.includes('support')) return 'w-[105px] min-w-[95px] max-w-[120px]';
-  if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) return 'w-[135px] min-w-[120px] max-w-[155px]';
-  if (h.includes('email')) return 'w-[185px] min-w-[165px] max-w-[215px]';
-  if (h.includes('phone')) return 'w-[125px] min-w-[115px] max-w-[140px]';
+  if (h.includes('recruiter') && !h.includes('email') && !h.includes('phone')) return 'w-[145px] min-w-[125px] max-w-[170px]';
+  if (h.includes('email')) return 'w-[210px] min-w-[185px] max-w-[245px]';
+  if (h.includes('phone')) return 'w-[165px] min-w-[145px] max-w-[190px]';
   if (h.includes('rate') || h.includes('price')) return 'w-[95px] min-w-[85px] max-w-[110px] whitespace-nowrap';
-  if (h.includes('update') || h.includes('notes')) return 'w-[230px] min-w-[190px] max-w-[280px]';
-  return 'w-[120px] min-w-[100px] max-w-[150px]';
+  if (h.includes('update') || h.includes('notes')) return 'w-[260px] min-w-[210px] max-w-[320px]';
+  return 'w-[125px] min-w-[105px] max-w-[155px]';
 }
 
 export default function TableClient({
@@ -996,7 +996,7 @@ export default function TableClient({
             className="w-full overflow-x-auto rounded-lg shadow-xs min-h-[450px] border theme-table-border"
             style={{ backgroundColor: 'var(--color-table-row-odd)' }}
           >
-            <table className="w-full min-w-[1500px] text-left text-xs border-collapse table-fixed">
+            <table className="w-full min-w-[1650px] text-left text-xs border-collapse table-fixed">
               <thead
                 className="theme-table-head sticky top-0 z-30 border-b theme-table-border"
               >
@@ -1252,7 +1252,7 @@ export default function TableClient({
                                   onCancel={() => setEditingCell(null)}
                                 />
                               )}
-                              <div className={`flex flex-col gap-1 w-full min-w-0 min-h-[24px] ${isEditing ? 'opacity-25 pointer-events-none' : ''}`}>
+                              <div className={`flex flex-col gap-1 w-full min-w-0 min-h-[24px] overflow-hidden ${isEditing ? 'opacity-25 pointer-events-none' : ''}`}>
                                 {colIndex === 0 && isNewRow && (
                                   <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wide shadow-2xs">
                                     ✨ New Row
