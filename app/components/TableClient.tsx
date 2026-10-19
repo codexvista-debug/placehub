@@ -1228,11 +1228,8 @@ export default function TableClient({
                             <td
                               key={header}
                               data-updated={isUpdatedCell ? 'true' : undefined}
-                              onClick={(e) => {
-                                if (!isEditing) {
-                                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-                                  startEditing(row.id, header, val);
-                                }
+                              onClick={() => {
+                                if (!isEditing) startEditing(row.id, header, val);
                                 if (isUpdatedCell) setUpdatedCellKeys((prev) => { const n = new Set(prev); n.delete(cellKey); return n; });
                                 if (isNewRow) setNewRowIds((prev) => { const n = new Set(prev); n.delete(row.id); return n; });
                               }}

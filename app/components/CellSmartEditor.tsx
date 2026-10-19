@@ -115,10 +115,10 @@ export default function CellSmartEditor({
     if (!coords) return;
     const t = setTimeout(() => {
       if (isCombobox) {
-        inputRef.current?.focus();
+        inputRef.current?.focus({ preventScroll: true });
       } else {
         if (textareaRef.current) {
-          textareaRef.current.focus();
+          textareaRef.current.focus({ preventScroll: true });
           textareaRef.current.setSelectionRange(textareaRef.current.value.length, textareaRef.current.value.length);
         }
       }
@@ -212,7 +212,7 @@ export default function CellSmartEditor({
       current = current ? `${current} ${tz}` : tz;
     }
     setTextValue(current);
-    textareaRef.current?.focus();
+    textareaRef.current?.focus({ preventScroll: true });
   };
 
   // Keyboard navigation for Combobox
