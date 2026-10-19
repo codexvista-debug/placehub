@@ -41,16 +41,31 @@ function parseDateToTimestamp(str: string): number {
   const parsed = Date.parse(clean);
   if (!isNaN(parsed)) return parsed;
 
-  // 3. Month name/abbr match (e.g. "Tue Jun 16, 2026 12:30 pm" or "Jun 16 2026")
-  const mMatch = clean.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i);
-  if (mMatch) {
-    const mSub = mMatch[1].toLowerCase().substring(0, 3);
+  // 3. Month name/abbr match (e.g. "Tue Jun 16, 2026 12:30 pm" or "Jun 16 2026" or "16 Jun 2026")
+  const mFirst = clean.match(
+    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b\.?\s*(\d{1,2})(?:st|nd|rd|th)?\b/i
+  );
+  if (mFirst) {
+    const mSub = mFirst[1].toLowerCase().substring(0, 3);
     const mIdx = monthsAbbr.indexOf(mSub);
-    const dMatch = clean.match(/\b(\d{1,2})\b/);
+    const d = parseInt(mFirst[2], 10);
     const yMatch = clean.match(/\b(20\d{2})\b/);
-    const d = dMatch ? parseInt(dMatch[1], 10) : 1;
     const y = yMatch ? parseInt(yMatch[1], 10) : 2026;
-    if (mIdx !== -1) {
+    if (mIdx !== -1 && d >= 1 && d <= 31) {
+      return new Date(y, mIdx, d).getTime();
+    }
+  }
+
+  const dFirst = clean.match(
+    /\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i
+  );
+  if (dFirst) {
+    const d = parseInt(dFirst[1], 10);
+    const mSub = dFirst[2].toLowerCase().substring(0, 3);
+    const mIdx = monthsAbbr.indexOf(mSub);
+    const yMatch = clean.match(/\b(20\d{2})\b/);
+    const y = yMatch ? parseInt(yMatch[1], 10) : 2026;
+    if (mIdx !== -1 && d >= 1 && d <= 31) {
       return new Date(y, mIdx, d).getTime();
     }
   }

@@ -31,59 +31,116 @@ interface ParsedInterview {
   countdownType: 'live' | 'urgent' | 'upcoming' | 'tomorrow' | 'past';
 }
 
-function parseInterviewDateTime(timeStr: string, dateStr: string) {
-  const combined = `${timeStr || ''} ${dateStr || ''}`.trim();
-  if (!combined) return null;
+const monthsList = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
-  let year: number | null = null;
-  let month: number | null = null;
-  let day: number | null = null;
+function parseDatePart(str: string): { year: number; month: number; day: number } | null {
+  if (!str || str === '-' || str.trim() === '') return null;
+  const s = str.trim();
 
-  // 1. Check ISO format YYYY-MM-DD
-  const isoMatch = combined.match(/\b(20\d{2})[-/](\d{1,2})[-/](\d{1,2})\b/);
-  if (isoMatch) {
-    year = parseInt(isoMatch[1], 10);
-    month = parseInt(isoMatch[2], 10) - 1;
-    day = parseInt(isoMatch[3], 10);
-  }
-
-  // 2. Check month names
-  if (month === null) {
-    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    const mMatch = combined.match(
-      /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i
-    );
-    if (mMatch) {
-      const sub = mMatch[1].toLowerCase().substring(0, 3);
-      month = months.indexOf(sub);
-      const dMatch = combined.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/);
-      const yMatch = combined.match(/\b(20\d{2})\b/);
-      if (dMatch) day = parseInt(dMatch[1], 10);
-      year = yMatch ? parseInt(yMatch[1], 10) : 2026;
+  // 1. Month name followed by day, e.g. "Oct 19", "October 19th", "Oct 19, 2026", "Mon Oct 19, 2026"
+  const mFirst = s.match(
+    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b\.?\s*(\d{1,2})(?:st|nd|rd|th)?\b/i
+  );
+  if (mFirst) {
+    const sub = mFirst[1].toLowerCase().substring(0, 3);
+    const m = monthsList.indexOf(sub);
+    const d = parseInt(mFirst[2], 10);
+    const yMatch = s.match(/\b(20\d{2})\b/);
+    const y = yMatch ? parseInt(yMatch[1], 10) : new Date().getFullYear();
+    if (m >= 0 && d >= 1 && d <= 31) {
+      return { year: y, month: m, day: d };
     }
   }
 
-  if (year === null || month === null || day === null) return null;
+  // 2. Day followed by month name, e.g. "19 Oct", "19th October 2026", "19th of Oct"
+  const dFirst = s.match(
+    /\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i
+  );
+  if (dFirst) {
+    const d = parseInt(dFirst[1], 10);
+    const sub = dFirst[2].toLowerCase().substring(0, 3);
+    const m = monthsList.indexOf(sub);
+    const yMatch = s.match(/\b(20\d{2})\b/);
+    const y = yMatch ? parseInt(yMatch[1], 10) : new Date().getFullYear();
+    if (m >= 0 && d >= 1 && d <= 31) {
+      return { year: y, month: m, day: d };
+    }
+  }
 
-  // 3. Extract hours & minutes
-  let hours = 9;
-  let minutes = 0;
-  const timeMatch = combined.match(/\b(\d{1,2}):(\d{2})\s*(am|pm)?\b/i);
+  // 3. ISO format YYYY-MM-DD
+  const isoMatch = s.match(/\b(20\d{2})[-/](\d{1,2})[-/](\d{1,2})\b/);
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10);
+    const m = parseInt(isoMatch[2], 10) - 1;
+    const d = parseInt(isoMatch[3], 10);
+    if (m >= 0 && m < 12 && d >= 1 && d <= 31) {
+      return { year: y, month: m, day: d };
+    }
+  }
+
+  // 4. US slash format MM/DD/YYYY or MM/DD
+  const slashMatch = s.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](20\d{2}|\d{2}))?\b/);
+  if (slashMatch) {
+    const m = parseInt(slashMatch[1], 10) - 1;
+    const d = parseInt(slashMatch[2], 10);
+    let y = slashMatch[3] ? parseInt(slashMatch[3], 10) : new Date().getFullYear();
+    if (y < 100) y += 2000;
+    if (m >= 0 && m < 12 && d >= 1 && d <= 31) {
+      return { year: y, month: m, day: d };
+    }
+  }
+
+  return null;
+}
+
+function parseTimePart(str: string): { hours: number; minutes: number } | null {
+  if (!str || str === '-' || str.trim() === '') return null;
+  const s = str.trim();
+
+  // "11:00 am", "02:30 pm", "12:00 PM - 12:30 PM EST"
+  const timeMatch = s.match(/\b(\d{1,2}):(\d{2})\s*(am|pm)?\b/i);
   if (timeMatch) {
-    hours = parseInt(timeMatch[1], 10);
-    minutes = parseInt(timeMatch[2], 10);
+    let hours = parseInt(timeMatch[1], 10);
+    const minutes = parseInt(timeMatch[2], 10);
     const meridiem = timeMatch[3]?.toLowerCase();
     if (meridiem === 'pm' && hours < 12) hours += 12;
     if (meridiem === 'am' && hours === 12) hours = 0;
-  } else {
-    const simpleHourMatch = combined.match(/\b(\d{1,2})\s*(am|pm)\b/i);
-    if (simpleHourMatch) {
-      hours = parseInt(simpleHourMatch[1], 10);
-      const meridiem = simpleHourMatch[2]?.toLowerCase();
-      if (meridiem === 'pm' && hours < 12) hours += 12;
-      if (meridiem === 'am' && hours === 12) hours = 0;
+    return { hours, minutes };
+  }
+
+  // Simple hour without minutes: "11 am", "2 pm"
+  const simpleHourMatch = s.match(/\b(\d{1,2})\s*(am|pm)\b/i);
+  if (simpleHourMatch) {
+    let hours = parseInt(simpleHourMatch[1], 10);
+    const meridiem = simpleHourMatch[2]?.toLowerCase();
+    if (meridiem === 'pm' && hours < 12) hours += 12;
+    if (meridiem === 'am' && hours === 12) hours = 0;
+    return { hours, minutes: 0 };
+  }
+
+  return null;
+}
+
+function parseInterviewDateTime(timeStr: string, dateStr: string) {
+  // 1. Try to extract date from timeStr first (since the INTERVIEW TIME column specifies the actual interview date)
+  // 2. If timeStr doesn't contain a date, fall back to dateStr (e.g. table's DATE column)
+  const dateObj = parseDatePart(timeStr) || parseDatePart(dateStr);
+  if (!dateObj) return null;
+
+  // If timeStr had no explicit 4-digit year, check if dateStr has one
+  if (dateStr) {
+    const yFromTime = (timeStr || '').match(/\b(20\d{2})\b/);
+    const yFromDate = (dateStr || '').match(/\b(20\d{2})\b/);
+    if (!yFromTime && yFromDate) {
+      dateObj.year = parseInt(yFromDate[1], 10);
     }
   }
+
+  // Extract time from timeStr first, then dateStr (fallback to 9:00 AM)
+  const timeObj = parseTimePart(timeStr) || parseTimePart(dateStr) || { hours: 9, minutes: 0 };
+
+  const { year, month, day } = dateObj;
+  const { hours, minutes } = timeObj;
 
   const d = new Date(year, month, day, hours, minutes);
   const timeFormatted = `${hours % 12 || 12}:${minutes < 10 ? '0' + minutes : minutes} ${hours >= 12 ? 'PM' : 'AM'}`;
