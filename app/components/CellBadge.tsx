@@ -154,12 +154,12 @@ export default function CellBadge({ header, value }: CellBadgeProps) {
   if (h.includes('update') || h.includes('note') || h.includes('comment')) {
     return (
       <div
-        className="text-[11.5px] leading-relaxed text-slate-800 pl-2 border-l-2 py-0.5 break-words whitespace-pre-wrap w-full min-w-0"
+        className="text-[11.5px] leading-relaxed text-slate-800 pl-2.5 pr-2 border-l-2 py-0.5 break-words whitespace-pre-wrap w-full min-w-0"
         style={{
           borderColor: 'var(--color-accent)',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
-          overflowWrap: 'break-word',
+          overflowWrap: 'anywhere',
         }}
       >
         {value}

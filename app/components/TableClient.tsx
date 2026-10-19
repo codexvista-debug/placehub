@@ -161,7 +161,7 @@ function getColumnWidthClass(header: string): string {
   if (h.includes('email')) return 'w-[210px] min-w-[185px] max-w-[245px]';
   if (h.includes('phone')) return 'w-[165px] min-w-[145px] max-w-[190px]';
   if (h.includes('rate') || h.includes('price')) return 'w-[95px] min-w-[85px] max-w-[110px] whitespace-nowrap';
-  if (h.includes('update') || h.includes('notes')) return 'w-[260px] min-w-[210px] max-w-[320px]';
+  if (h.includes('update') || h.includes('notes')) return 'w-[360px] min-w-[320px] max-w-[500px]';
   return 'w-[125px] min-w-[105px] max-w-[155px]';
 }
 
@@ -1011,7 +1011,7 @@ export default function TableClient({
             className="w-full overflow-x-auto rounded-lg shadow-xs min-h-[450px] border theme-table-border"
             style={{ backgroundColor: 'var(--color-table-row-odd)' }}
           >
-            <table className="w-full min-w-[1650px] text-left text-xs border-collapse table-fixed">
+            <table className="w-full min-w-[1900px] text-left text-xs border-collapse table-fixed">
               <thead
                 className="theme-table-head sticky top-0 z-30 border-b theme-table-border"
               >
@@ -1228,8 +1228,11 @@ export default function TableClient({
                             <td
                               key={header}
                               data-updated={isUpdatedCell ? 'true' : undefined}
-                              onClick={() => {
-                                if (!isEditing) startEditing(row.id, header, val);
+                              onClick={(e) => {
+                                if (!isEditing) {
+                                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                                  startEditing(row.id, header, val);
+                                }
                                 if (isUpdatedCell) setUpdatedCellKeys((prev) => { const n = new Set(prev); n.delete(cellKey); return n; });
                                 if (isNewRow) setNewRowIds((prev) => { const n = new Set(prev); n.delete(row.id); return n; });
                               }}

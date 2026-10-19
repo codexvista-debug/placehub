@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { normalizeName, getInitials } from '@/app/utils/nameUtils';
 
 interface SchemaInfo {
@@ -60,18 +61,70 @@ export default function CellSmartEditor({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Focus textarea or input on mount
+  // Portal & Position state
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
-    if (isCombobox) {
-      inputRef.current?.focus();
-    } else {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        // place cursor at end
-        textareaRef.current.setSelectionRange(textareaRef.current.value.length, textareaRef.current.value.length);
+    setIsMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    const updatePosition = () => {
+      if (!anchorRef.current) return;
+      const parentTd = anchorRef.current.closest('td') || anchorRef.current.parentElement;
+      if (!parentTd) return;
+      const rect = parentTd.getBoundingClientRect();
+
+      const modalWidth = isCombobox ? 360 : 460;
+      const clampedWidth = Math.min(modalWidth, window.innerWidth - 32);
+
+      // Determine horizontal alignment:
+      // If near right column or in right half of screen, align with right edge of cell
+      let left = (isNearRight || rect.left + rect.width / 2 > window.innerWidth / 2)
+        ? rect.right - clampedWidth
+        : rect.left;
+
+      // Strictly clamp within viewport margins (min 16px from edge)
+      left = Math.max(16, Math.min(left, window.innerWidth - clampedWidth - 16));
+
+      // Determine vertical alignment:
+      const estimatedHeight = isCombobox ? 360 : (isTimeField ? 320 : 280);
+      let top = (isNearBottom || rect.bottom + estimatedHeight > window.innerHeight - 16)
+        ? rect.top - estimatedHeight - 6
+        : rect.bottom + 6;
+
+      // Strictly clamp vertical position within viewport
+      top = Math.max(16, Math.min(top, window.innerHeight - estimatedHeight - 16));
+
+      setCoords({ top, left, width: clampedWidth });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isCombobox, isNearRight, isNearBottom, isTimeField]);
+
+  // Focus textarea or input on mount or when coords ready
+  useEffect(() => {
+    if (!coords) return;
+    const t = setTimeout(() => {
+      if (isCombobox) {
+        inputRef.current?.focus();
+      } else {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.setSelectionRange(textareaRef.current.value.length, textareaRef.current.value.length);
+        }
       }
-    }
-  }, [isCombobox]);
+    }, 20);
+    return () => clearTimeout(t);
+  }, [isCombobox, coords]);
 
   // Compute merged prefilled options for combobox
   const prefilledOptions = useMemo(() => {
@@ -230,54 +283,57 @@ export default function CellSmartEditor({
 
   return (
     <>
-      {/* Invisible backdrop to capture clicks outside */}
-      <div
-        className="fixed inset-0 z-40 bg-black/15 backdrop-blur-[0.5px]"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (isCombobox) {
-            onSave(query.trim() || initialValue);
-          } else {
-            onSave(textValue.trim());
-          }
-        }}
-      />
+      <span ref={anchorRef} className="hidden" aria-hidden="true" />
+      {isMounted && coords && createPortal(
+        <>
+          {/* Invisible backdrop to capture clicks outside */}
+          <div
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[0.5px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isCombobox) {
+                onSave(query.trim() || initialValue);
+              } else {
+                onSave(textValue.trim());
+              }
+            }}
+          />
 
-      {/* Floating Card Modal */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className={`absolute z-50 bg-white rounded-xl shadow-2xl border border-slate-300 text-slate-900 p-3.5 transition-all animate-in fade-in zoom-in-95 duration-100 ${
-          isNearRight ? 'right-0' : 'left-0'
-        } ${isNearBottom ? 'bottom-0' : 'top-0'} ${
-          isCombobox ? 'w-[320px] sm:w-[360px]' : 'w-[380px] sm:w-[460px]'
-        }`}
-        style={{
-          boxShadow: '0 20px 30px -10px rgba(0, 0, 0, 0.25), 0 8px 12px -6px rgba(0, 0, 0, 0.15)',
-        }}
-      >
-        {/* Header bar */}
-        <div className="flex items-center justify-between gap-2 pb-2 mb-2.5 border-b border-slate-200">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-sm">
-              {isCombobox ? '🏷️' : isTimeField ? '⏱️' : '📝'}
-            </span>
-            <span className="font-bold text-xs text-slate-800 truncate uppercase tracking-wider">
-              {header}
-            </span>
-            <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-medium shrink-0 border border-slate-200">
-              {isCombobox ? 'Quick Select' : 'Full Editor'}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-slate-600 hover:text-slate-800 hover:bg-slate-100 p-1 rounded-md transition-colors text-xs cursor-pointer"
-            title="Cancel (Esc)"
+          {/* Floating Card Modal */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="fixed z-50 bg-white rounded-xl shadow-2xl border border-slate-300 text-slate-900 p-3.5 transition-all animate-in fade-in zoom-in-95 duration-100"
+            style={{
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+              width: `${coords.width}px`,
+              boxShadow: '0 20px 35px -10px rgba(0, 0, 0, 0.35), 0 10px 15px -5px rgba(0, 0, 0, 0.2)',
+            }}
           >
-            ✕
-          </button>
-        </div>
+            {/* Header bar */}
+            <div className="flex items-center justify-between gap-2 pb-2 mb-2.5 border-b border-slate-200">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-sm">
+                  {isCombobox ? '🏷️' : isTimeField ? '⏱️' : '📝'}
+                </span>
+                <span className="font-bold text-xs text-slate-800 truncate uppercase tracking-wider">
+                  {header}
+                </span>
+                <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-medium shrink-0 border border-slate-200">
+                  {isCombobox ? 'Quick Select' : 'Full Editor'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={onCancel}
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-1.5 py-0.5 rounded-md transition-colors text-xs font-bold cursor-pointer flex items-center gap-1"
+                title="Cancel (Esc)"
+              >
+                <span>✕</span>
+                <span className="text-[10px] font-normal text-slate-500">Esc</span>
+              </button>
+            </div>
 
         {/* MODE A: COMBOBOX (Prefilled options + Search & Custom Entry) */}
         {isCombobox ? (
@@ -515,6 +571,9 @@ export default function CellSmartEditor({
           </div>
         )}
       </div>
-    </>
-  );
+    </>,
+    document.body
+  )}
+</>
+);
 }
